@@ -1,0 +1,37 @@
+configname: cat8 # small batch
+data:
+  train1: "/public/home/hpc164611151/projects/edge_snp/training5/tag1"
+  train2: "/public/home/hpc164611151/projects/edge_snp/training5/tag2"
+  # train1: "/public/home/hpc164611151/projects/edge_snp/testing4/tag1"
+  # train2: "/public/home/hpc164611151/projects/edge_snp/testing4/tag2"
+  dev1: "/public/home/hpc164611151/projects/edge_snp/testing5/tag1"
+  dev2: "/public/home/hpc164611151/projects/edge_snp/testing5/tag2"
+model:
+  use_g0: True
+  use_g1: True
+  use_g2: False
+  use_g3: False
+  gt_num_class: 10
+  zy_num_class: 3
+training:
+  batch_size: 256
+  load_model: False
+  load_encoder: False
+  load_forward_layer: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2021
+  num_gpu: 1
+  epochs: 200
+  max_grad_norm: 20
+  visualization: True
+  show_interval: 100
+  save_model: cat8
+optim:
+  type: LookaheadAdam
+  lr: 0.0001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0
+  begin_to_adjust_lr: 10

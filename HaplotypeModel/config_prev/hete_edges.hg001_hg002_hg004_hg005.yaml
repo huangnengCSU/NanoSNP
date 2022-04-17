@@ -1,0 +1,40 @@
+configname: hete_edge_hg001_hg002_hg004_hg005
+data:
+  train: "/home/user/projects/edge_snp/hete_edge_training_dataset/training"
+  dev: "/home/user/projects/edge_snp/hete_edge_training_dataset/testing"
+  test: "/home/user/projects/edge_snp/hete_edge_training_dataset/testing"
+model:
+  enc:
+    type: lstm
+    hidden_size: 64
+    output_size: 128
+    n_layers: 2
+    bidirectional: True
+  joint:
+    inner_size: 256
+  feature_dim: 25
+  gt_num_class: 10
+  zy_num_class: 2
+  dropout: 0.3
+training:
+  batch_size: 1000
+  load_model: False
+  load_encoder: False
+  load_forward_layer: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2021
+  num_gpu: 1
+  epochs: 200
+  max_grad_norm: 20
+  visualization: True
+  show_interval: 100
+  save_model: hete_edge_hg001_hg002_hg004_hg005
+optim:
+  type: LookaheadAdam
+  lr: 0.0001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0
+  begin_to_adjust_lr: 3

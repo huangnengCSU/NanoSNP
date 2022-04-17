@@ -1,0 +1,41 @@
+configname: cat45_Unified # weight init, small batch_size, lr=0.00001, g1:ResCRNN, 父母本合并预测
+data:
+  #train1: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14/edge_bins1/training"
+  train1: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14_Unified/edge_bins1/training"
+  #train2: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14/edge_bins2/training"
+  train2: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14_Unified/edge_bins2/training"
+  #train1: "/public/home/hpc164611151/projects/edge_snp/testing5/tag1"
+  #train2: "/public/home/hpc164611151/projects/edge_snp/testing5/tag2"
+  #dev1: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14/edge_bins1/testing"
+  dev1: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14_Unified/edge_bins1/testing"
+  #dev2: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14/edge_bins2/testing"
+  dev2: "/public/home/hpc164611151/projects/edge_snp_lastv/hg001_300_whatshap_surrounding11_adjacent5_Q14_Unified/edge_bins2/testing"
+model:
+  use_g0: False
+  use_g1: True
+  use_g2: False
+  use_g3: False
+  gt_num_class: 10
+  zy_num_class: 3
+training:
+  batch_size: 128
+  load_model: False
+  load_encoder: False
+  load_forward_layer: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2021
+  num_gpu: 1
+  epochs: 400
+  max_grad_norm: 2
+  visualization: True
+  show_interval: 100
+  save_model: cat45_Unified
+optim:
+  type: Ranger
+  lr: 0.00001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0
+  begin_to_adjust_lr: 10
