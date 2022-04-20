@@ -74,6 +74,7 @@ ref=${REFERENCE_FILE_PATH}
 output=${OUTPUT_FOLDER}
 threads=${THREADS}
 
+mkdir -p ${output}
 
 bash scripts/s1_pileup_model_feature_generation.sh \
 ${bam} \
