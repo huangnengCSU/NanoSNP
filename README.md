@@ -7,13 +7,13 @@ with gpu device:
 ```
 git clone https://github.com/huangnengCSU/NanoSNP.git
 cd NanoSNP
-singularity pull huangnengcsu/nanosnp:v1-gpu
+singularity pull docker://huangnengcsu/nanosnp:v1-gpu
 ```
 with cpu device only:
 ```
 git clone https://github.com/huangnengCSU/NanoSNP.git
 cd NanoSNP
-singularity pull huangnengcsu/nanosnp:v1-cpu
+singularity pull docker://huangnengcsu/nanosnp:v1-cpu
 ```
 
 ## Usage
