@@ -79,11 +79,11 @@ bash scripts/s1_pileup_model_feature_generation.sh \
 ${bam} \
 ${ref} \
 ${output} \
-${threads}
+${threads} > s1.log 2>&1
 
 bash scripts/s2_pileup_model_predict.sh \
 ${output}/bin_predict_data \
-${output}/pileup.vcf
+${output}/pileup.vcf > s2.log 2>&1
 
 bash scripts/s3_phasing_long_reads.sh \
 ${output}/pileup.vcf \
@@ -93,7 +93,7 @@ ${threads} \
 ${output}/phase_out \
 ${output}/splited_bams \
 ${output}/splited_vcfs \
-${output}/haplotag_out
+${output}/haplotag_out > s3.log 2>&1
 
 bash scripts/s4_haplotype_model_feature_generation.sh \
 ${output}/pileup.vcf \
@@ -101,16 +101,16 @@ ${output}/haplotag_out \
 ${threads} \
 ${output}/haplotag_split_out \
 ${output}/edge_bins1 \
-${output}/edge_bins2
+${output}/edge_bins2 > s4.log 2>&1
 
 
 bash scripts/s5_haplotype_model_predict.sh \
 ${output}/edge_bins1 \
 ${output}/edge_bins2 \
-${output}/haplotype.csv
+${output}/haplotype.csv > s5.log 2>&1
 
 bash scripts/s6_merge_pileup_haplotype_calls.sh \
 ${output}/pileup.vcf \
 ${output}/haplotype.csv \
-${output}/merge.vcf
+${output}/merge.vcf > s6.log 2>&1
 
