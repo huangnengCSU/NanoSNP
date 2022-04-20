@@ -199,7 +199,7 @@ def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=N
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default='config/pore-c.yaml', help='path to config file')
+    parser.add_argument('-config', type=str, help='path to config file', required=True)
     parser.add_argument('-log', type=str, default='train.log', help='name of log file')
     parser.add_argument('-mode', type=str, default='retrain', help="training mode: retain or finetune")
     parser.add_argument('-model_path', type=str, help='path to pre-trained model')
