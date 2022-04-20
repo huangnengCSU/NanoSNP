@@ -13,13 +13,22 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash Miniconda3-latest-Linux-x86_64.sh -b
 RUN rm Miniconda3-latest-Linux-x86_64.sh
 ENV PATH=/root/miniconda3/bin:${PATH} 
+RUN conda config --add channels bioconda
+# RUN conda config --add channels conda-forge
 RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
 RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
 RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
-RUN conda install cudatoolkit=10.2
-RUN conda install pytorch-gpu
+# RUN conda install cudatoolkit=10.2
+# RUN conda install pytorch-gpu
+RUN conda install pytorch-cpu
 RUN conda install whatshap
 RUN pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
 RUN python -m pip install git+https://github.com/lessw2020/Ranger21.git
 RUN git clone https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
 RUN cd Ranger-Deep-Learning-Optimizer && pip install -e .
+
+RUN mkdir -p /tools/dna_sv_tensor
+COPY dna_sv_tensor /tools/dna_sv_tensor
+RUN cd /tools/dna_sv_tensor/src/ && make
+RUN cd /tools/dna_sv_tensor/src/scripts/ && chmod +x make_predict_data.sh make_train_data.sh
+ENV PATH=/tools/dna_sv_tensor/src/scripts:${PATH}
