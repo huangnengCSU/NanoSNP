@@ -2,14 +2,23 @@
 
 ulimit -n 20000
 
-INPUT_VCF="/public/home/hpc164611151/projects/PileupModel/PileupModel/outputs/hg003_100G_hg001_mix_with_refcall.vcf"
-REF="/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/GRCh38/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
-BAM="/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/hg003/low_coverage_test_dataset/hg003_100G.bam"
-THREADS="40"
-PHASED_DIR="phase_out"
-SPLITED_BAMS="splited_bams"
-SPLITED_VCFS="splited_vcfs"
-HAPLOTAG_DIR="haplotag_out"
+# INPUT_VCF="/public/home/hpc164611151/projects/PileupModel/PileupModel/outputs/hg003_100G_hg001_mix_with_refcall.vcf"
+# REF="/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/GRCh38/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
+# BAM="/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/hg003/low_coverage_test_dataset/hg003_100G.bam"
+# THREADS="40"
+# PHASED_DIR="phase_out"
+# SPLITED_BAMS="splited_bams"
+# SPLITED_VCFS="splited_vcfs"
+# HAPLOTAG_DIR="haplotag_out"
+
+INPUT_VCF=$1
+REF=$2
+BAM=$3
+THREADS=$4
+PHASED_DIR=$5
+SPLITED_BAMS=$6
+SPLITED_VCFS=$7
+HAPLOTAG_DIR=$8
 
 
 PHASED_PREFIX=$PHASED_DIR/`basename $PHASED_DIR`
