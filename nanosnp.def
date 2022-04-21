@@ -17,11 +17,11 @@ From: ubuntu:18.04
     export PATH=/usr/local/miniconda3/bin:$PATH
     conda config --add channels bioconda
     conda config --add channels conda-forge
-    # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
-    # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
-    # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
-    RUN conda install cudatoolkit=10.2
-    RUN conda install pytorch-gpu
+    # conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
+    # conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
+    # conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
+    conda install cudatoolkit=10.2
+    conda install pytorch-gpu
     # conda install pytorch-cpu
     conda install whatshap
     pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
