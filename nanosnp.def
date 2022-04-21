@@ -40,3 +40,4 @@ Stage: build
 %environment
     export PATH=/tools/dna_sv_tensor/src/scripts:$PATH
     export PATH=/usr/local/miniconda3/bin:$PATH
+    export PATH=/usr/local/bin:$PATH
