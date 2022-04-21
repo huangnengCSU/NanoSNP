@@ -13,18 +13,16 @@ From: ubuntu:18.04
     tar -jxvf bcftools-1.15.1.tar.bz2 && cd bcftools-1.15.1 && ./configure && make && make install
     cd /tools/
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    bash Miniconda3-latest-Linux-x86_64.sh -b
-%environment
-    export PATH=/root/miniconda3/bin:$PATH
-%post
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /usr/local/miniconda3/
+    export PATH=/usr/local/miniconda3/bin:$PATH
     conda config --add channels bioconda
-    RUN conda config --add channels conda-forge
+    conda config --add channels conda-forge
     # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
     # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
     # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
-    # RUN conda install cudatoolkit=10.2
-    # RUN conda install pytorch-gpu
-    conda install pytorch-cpu
+    RUN conda install cudatoolkit=10.2
+    RUN conda install pytorch-gpu
+    # conda install pytorch-cpu
     conda install whatshap
     pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
     python -m pip install git+https://github.com/lessw2020/Ranger21.git
@@ -39,3 +37,4 @@ From: ubuntu:18.04
     cd /tools/dna_sv_tensor/src/scripts/ && chmod +x make_predict_data.sh make_train_data.sh
 %environment
     export PATH=/tools/dna_sv_tensor/src/scripts:$PATH
+    export PATH=/usr/local/miniconda3/bin:$PATH
