@@ -13,7 +13,7 @@ docker pull huangnengcsu/nanosnp:v1-gpu
 ```
 git clone https://github.com/huangnengCSU/NanoSNP.git
 cd NanoSNP/
-singularity build nanosnp_v1-gpu.sif nanosnp.def
+singularity pull docker://huangnengcsu/nanosnp:v1-gpu
 ```
 
 
@@ -24,8 +24,8 @@ For whole genome SNP calling on each chromosome including chr1-chr22,chrX,chrY,c
 Singularity:
 ```
 cd NanoSNP/
-singularity exec -B "Directory on the host system":"Directory inside the container" \
-nanosnp_v1-gpu.sif bash run_caller.sh \
+singularity exec --nv --containall -B "Directory on the host system":"Directory inside the container",`pwd`:`pwd` \
+nanosnp_v1-gpu.sif bash `pwd`/run_caller.sh \
 -b "[BAM_FILE]" \
 -f "[REFERENCE_FILE]" \
 -t "[THREADS]" \
