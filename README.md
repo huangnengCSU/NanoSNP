@@ -13,7 +13,7 @@ docker pull huangnengcsu/nanosnp:v1-gpu
 ```
 git clone https://github.com/huangnengCSU/NanoSNP.git
 cd NanoSNP/
-singularity pull library://huangnengcsu/nanosnp/nanosnp:v1-gpu
+singularity build nanosnp_v1-gpu.sif nanosnp.def
 ```
 
 
