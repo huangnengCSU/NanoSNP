@@ -17,8 +17,6 @@ from tensorboardX import SummaryWriter
 import torchnet.meter as meter
 from datetime import datetime
 
-print(time.strftime("[%a %b %d %H:%M:%S %Y] Load packages, Done.", time.localtime()))
-
 
 # from options import gt_decoded_labels, zy_decoded_labels, indel1_decoded_labels, indel2_decoded_labels
 
@@ -199,7 +197,7 @@ def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=N
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, help='path to config file', required=True)
+    parser.add_argument('-config', type=str, default='config/pore-c.yaml', help='path to config file')
     parser.add_argument('-log', type=str, default='train.log', help='name of log file')
     parser.add_argument('-mode', type=str, default='retrain', help="training mode: retain or finetune")
     parser.add_argument('-model_path', type=str, help='path to pre-trained model')
@@ -217,15 +215,11 @@ def main():
     logger.info('Save config info.')
 
     num_workers = config.training.num_gpu * 2
-    train_dataset = TrainDatasetPreLoad(data_dir1=config.data.train1, data_dir2=config.data.train2,
-                                        pileup_length=config.model.pileup_length,
-                                        haplotype_length=config.model.haplotype_length)
+    train_dataset = TrainDatasetPreLoad(data_dir1=config.data.train1, data_dir2=config.data.train2)
     training_data = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4)
     logger.info('Load Train Set!')
 
-    dev_dataset = TrainDatasetPreLoad(data_dir1=config.data.dev1, data_dir2=config.data.dev2,
-                                      pileup_length=config.model.pileup_length,
-                                      haplotype_length=config.model.haplotype_length)
+    dev_dataset = TrainDatasetPreLoad(data_dir1=config.data.dev1, data_dir2=config.data.dev2)
     validate_data = torch.utils.data.DataLoader(dev_dataset, batch_size=1, shuffle=False, num_workers=4)
     logger.info('Load Dev Set!')
 
@@ -250,26 +244,28 @@ def main():
         num_batches_per_epoch += batches
 
     if opt.mode == 'retrain':
-        model = CatModel(nclass=config.model.gt_num_class,
-                         pileup_length=config.model.pileup_length,
-                         haplotype_length=config.model.haplotype_length,
-                         use_g0=config.model.use_g0,
-                         use_g1=config.model.use_g1).cuda()
+        model = CatModel(nc0=5, nc1=5, nc2=2, nclass=config.model.gt_num_class, nh=256,
+                        use_g0=config.model.use_g0,
+                        use_g1=config.model.use_g1,
+                        use_g2=config.model.use_g2,
+                        use_g3=config.model.use_g3).cuda()
         model.apply(weights_init)
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch)
         logger.info('Created a %s optimizer.' % config.optim.type)
     elif opt.mode == 'finetune':
-        model = CatModel(nclass=config.model.gt_num_class,
-                         pileup_length=config.model.pileup_length,
-                         haplotype_length=config.model.haplotype_length,
-                         use_g0=config.model.use_g0,
-                         use_g1=config.model.use_g1).cuda()
+        model = CatModel(nc0=5, nc1=5, nc2=2, nclass=config.model.gt_num_class, nh=256,
+                        use_g0=config.model.use_g0,
+                        use_g1=config.model.use_g1,
+                        use_g2=config.model.use_g2,
+                        use_g3=config.model.use_g3).cuda()
         model.load_state_dict(torch.load(opt.model_path))
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch, finetune=True)
         logger.info('Created a %s optimizer.' % config.optim.type)
     else:
         print("ERROR: Unknown training mode.")
         sys.exit()
+
+
 
     start_epoch = 0
 

@@ -90,7 +90,7 @@ def extract_pileups(samfile, ctg, positions):
     return edge_df
 
 
-def extract_pileups_batch(samfile, groups, max_coverage, pileup_length):
+def extract_pileups_batch(samfile, groups, max_coverage):
     cand_pos, cand_edge_columns, cand_edge_matrix, cand_pair_columns, cand_pair_route = [], [], [], [], []
     cand_group_pos, cand_read_matrix, cand_baseq_matrix, cand_mapq_matrix = [], [], [], []
     cand_surrounding_read_matrix, cand_surrounding_baseq_matrix, cand_surrounding_mapq_matrix = [], [], []
@@ -137,9 +137,8 @@ def extract_pileups_batch(samfile, groups, max_coverage, pileup_length):
         for tidx in range(len(g)):
             snpitem = g[tidx]
             if tidx == len(g) // 2:
-                # TODO: 可修改pileup特征的长度
-                extend_positions.extend(list(range(int(snpitem.position) - ((pileup_length - 1) // 2),
-                                                   int(snpitem.position) + ((pileup_length - 1) // 2 + 1))))
+                # TODO: 目前写死了11个长度，后期增加参数设置
+                extend_positions.extend(list(range(int(snpitem.position) - 5, int(snpitem.position) + 6)))
             else:
                 extend_positions.append(int(snpitem.position))
     extend_positions = sorted(list(set(extend_positions)))
@@ -255,9 +254,7 @@ def extract_pileups_batch(samfile, groups, max_coverage, pileup_length):
         depth.append(read_df_gpos.shape[0])
 
         # 候选位点周围11-mer的reads比对信息
-        # TODO: 可修改pileup特征的长度
-        gpos = list(range(int(g[len(g) // 2].position) - ((pileup_length - 1) // 2),
-                          int(g[len(g) // 2].position) + ((pileup_length - 1) // 2 + 1)))
+        gpos = list(range(int(g[len(g) // 2].position) - 5, int(g[len(g) // 2].position) + 6))
         gdf = df[gpos]
         # filter gdf: 每条reads必须跨过group的中的中间位置即可。如果要求reads跨过所有点，则筛选出来的覆盖度很低
         filter_gdf_lines = []

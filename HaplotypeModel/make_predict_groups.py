@@ -71,7 +71,7 @@ class GroupQueue:
         self.__queue = []
 
 
-def extract_pileups_group(bam, groups, max_coverage, pileup_length):
+def extract_pileups_group(bam, groups, max_coverage):
     ctgname = groups[0][0].ctgname
     out_cand_pos, out_cand_edge_columns, out_cand_edge_matrix, out_cand_pair_columns, out_cand_pair_route = [], [], [], [], []
     out_cand_group_pos, out_cand_read_matrix, out_cand_baseq_matrix, out_cand_mapq_matrix = [], [], [], []
@@ -107,7 +107,7 @@ def extract_pileups_group(bam, groups, max_coverage, pileup_length):
         cand_read_matrix, cand_baseq_matrix, cand_mapq_matrix, depth, \
         cand_surrounding_read_matrix, cand_surrounding_baseq_matrix, \
         cand_surrounding_mapq_matrix, surrounding_depth = extract_pileups_batch(
-            samfile, sub_sub_groups, max_coverage, pileup_length)
+            samfile, sub_sub_groups, max_coverage)
         if cand_edge_matrix is not None:
             out_cand_pos.extend(cand_pos)
             out_cand_edge_columns.extend(cand_edge_columns)
@@ -133,10 +133,7 @@ def Run(args):
     pileup_vcf = args.pileup_vcf
     quality_threshold = args.min_quality
     adjacent_size = args.adjacent_size
-    pileup_length = args.pileup_length
     support_quality = args.support_quality
-
-    assert pileup_length % 2 == 1  # 必须为奇数
 
     groups_dict = select_snp(
         vcf_file=pileup_vcf, quality_threshold=quality_threshold, adjacent_size=adjacent_size,
@@ -156,13 +153,13 @@ def Run(args):
         with concurrent.futures.ProcessPoolExecutor(max_workers=total_threads) as executor:
             if len(divided_groups) == total_threads:
                 signals = [
-                    executor.submit(extract_pileups_group, args.bam, divided_groups[thread_id], args.max_coverage,
-                                    pileup_length) for thread_id in range(0, total_threads)]
+                    executor.submit(extract_pileups_group, args.bam, divided_groups[thread_id], args.max_coverage) for
+                    thread_id in range(0, total_threads)]
             else:
                 # 如果chromosome_groups恰好被total_threads整除，则divided_groups长度只有total_threads-1，会出现数组越界错误。
                 signals = [
-                    executor.submit(extract_pileups_group, args.bam, divided_groups[thread_id], args.max_coverage,
-                                    pileup_length) for thread_id in range(0, len(divided_groups))]
+                    executor.submit(extract_pileups_group, args.bam, divided_groups[thread_id], args.max_coverage) for
+                    thread_id in range(0, len(divided_groups))]
             for sig in concurrent.futures.as_completed(signals):
                 if sig.exception() is None:
                     # get the results
@@ -251,15 +248,12 @@ def Run(args):
             where='/', name='mapping_quality_matrix', atom=int_atom, shape=[0, max_depth, 2 * adjacent_size + 1])
         table_file.create_earray(
             where='/', name='position', atom=string_atom, shape=(0, 1), filters=TABLE_FILTERS)
-        # TODO: 可修改pileup特征的长度
         table_file.create_earray(
-            where='/', name='surrounding_read_matrix', atom=int_atom, shape=[0, max_surrounding_depth, pileup_length])
+            where='/', name='surrounding_read_matrix', atom=int_atom, shape=[0, max_surrounding_depth, 11])
         table_file.create_earray(
-            where='/', name='surrounding_base_quality_matrix', atom=int_atom,
-            shape=[0, max_surrounding_depth, pileup_length])
+            where='/', name='surrounding_base_quality_matrix', atom=int_atom, shape=[0, max_surrounding_depth, 11])
         table_file.create_earray(
-            where='/', name='surrounding_mapping_quality_matrix', atom=int_atom,
-            shape=[0, max_surrounding_depth, pileup_length])
+            where='/', name='surrounding_mapping_quality_matrix', atom=int_atom, shape=[0, max_surrounding_depth, 11])
 
         table_file.create_earray(where='/', name='edge_columns', atom=string_atom, shape=(0, adjacent_size * 2),
                                  filters=TABLE_FILTERS)
@@ -298,8 +292,6 @@ def main():
                         help="Input the output directory, required.")
     parser.add_argument("--adjacent_size", type=int, default=5,
                         help="The range of SNPS around the candidate sites to be considered as groups, default: %(default)d")
-    parser.add_argument("--pileup_length", type=int, default=11,
-                        help="The length of surrounding pileup feature in haplotype model, default: %(default)d")
     parser.add_argument("--min_quality", type=int, default=15,
                         help="The minimum quality of hetezygous site used as edge model.")
     parser.add_argument('--support_quality', default=19, type=float,

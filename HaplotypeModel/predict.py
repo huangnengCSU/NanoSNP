@@ -16,8 +16,6 @@ from utils import AttrDict
 from options import gt_decoded_labels, zy_decoded_labels, indel1_decoded_labels, indel2_decoded_labels, base_idx
 from tqdm import tqdm
 
-print(time.strftime("[%a %b %d %H:%M:%S %Y] Load packages, Done.", time.localtime()))
-
 
 def calculate_score(probability):
     p = probability
@@ -80,14 +78,14 @@ def main():
 
     configfile = open(opt.config)
     config = AttrDict(yaml.load(configfile, Loader=yaml.FullLoader))
-    pred_model = CatModel(nclass=config.model.gt_num_class,
-                          pileup_length=config.model.pileup_length,
-                          haplotype_length=config.model.haplotype_length,
+    pred_model = CatModel(nc0=5, nc1=5, nc2=2, nclass=config.model.gt_num_class, nh=256,
                           use_g0=config.model.use_g0,
-                          use_g1=config.model.use_g1).to(device)
+                          use_g1=config.model.use_g1,
+                          use_g2=config.model.use_g2,
+                          use_g3=config.model.use_g3).to(device)
     pred_model.load_state_dict(torch.load(opt.model_path))
 
-    test_dataset = PredictDataset(data_dir1=opt.data_tag1, data_dir2=opt.data_tag2, min_depth=2)
+    test_dataset = PredictDataset(data_dir1=opt.data_tag1, data_dir2=opt.data_tag2,min_depth=2)
     test_data = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
     predict(pred_model, test_data, opt.batch_size, opt.output, device)
 

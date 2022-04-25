@@ -199,34 +199,34 @@ def calculate_percentage(ts):
 
 
 class CatModel(nn.Module):
-    def __init__(self, nclass, pileup_length=11, haplotype_length=11, use_g0=True, use_g1=True):
+    def __init__(self, nc0, nc1, nc2, nclass, nh, use_g0=True, use_g1=True, use_g2=True, use_g3=True):
         super(CatModel, self).__init__()
         self.nclass = nclass
-        self.use_pileup = use_g0
-        self.use_haplotype = use_g1
-        assert pileup_length % 2 == 1
-        assert haplotype_length % 2 == 1
-        assert pileup_length == haplotype_length
-        self.pileup_length = pileup_length
-        self.haplotype_length = haplotype_length
         # self.surrounding_base = RNN(nIn=5, nh=256, nOut=512)
         # self.haplotype_base = RNN(nIn=40, nh=256, nOut=512)
-        if use_g0 and not use_g1:
-            self.haplotype_base = ResCRNN(nc=5, nclass=256, nh=256)
-            self.haplotype_percentage = RNN(nIn=10, nh=256, nOut=256)
-        elif not use_g0 and use_g1:
-            self.haplotype_base = ResCRNN(nc=5, nclass=256, nh=256)
-            self.haplotype_percentage = RNN(nIn=10, nh=256, nOut=256)
-        elif use_g0 and use_g1:
-            self.haplotype_base = ResCRNN(nc=10, nclass=256, nh=256)
-            self.haplotype_percentage = RNN(nIn=20, nh=256, nOut=256)
+        self.haplotype_base = ResCRNN(nc=10, nclass=256, nh=256)
+        self.haplotype_percentage = RNN(nIn=20, nh=256, nOut=256)
+        # self.cnn_edge = CNN(nc2, nOut=256)
+        # self.cnn_pair = CNN(nc2, nOut=256)
 
-        # if use_g0 and use_g1:
+        # num_of_out = int(use_g0)+int(use_g1)+int(use_g2)+int(use_g3)
+        # self.out_layer = nn.Linear(nclass * num_of_out, nclass)
+        # self.num_of_out = num_of_out
+        # self.use_g0 = use_g0
+        # self.use_g1 = use_g1
+        # self.use_g2 = use_g2
+        # self.use_g3 = use_g3
+
+        # if self.use_g0 and self.use_g1 and self.use_g2 and self.use_g3:
+        #     self.out_layer = nn.Linear(2560, nclass)
+        # elif self.use_g0 and self.use_g1 and self.use_g2 and not self.use_g3:
+        #     self.out_layer = nn.Linear(2304, nclass)
+        # elif self.use_g0 and self.use_g1 and not self.use_g2 and not self.use_g3:
+        #     self.out_layer = nn.Linear(2048, nclass)
+        # elif self.use_g0 and not self.use_g1 and not self.use_g2 and not self.use_g3:
         #     self.out_layer = nn.Linear(1024, nclass)
-        # elif use_g0 and not use_g1:
-        #     self.out_layer = nn.Linear(512, nclass)
-        # elif not use_g0 and use_g1:
-        #     self.out_layer = nn.Linear(512, nclass)
+        # elif not self.use_g0 and self.use_g1 and not self.use_g2 and not self.use_g3:
+        #     self.out_layer = nn.Linear(1024, nclass)
         # else:
         #     print("create model unsuccessfully.")
         #     sys.exit(1)
@@ -236,121 +236,125 @@ class CatModel(nn.Module):
         self.gt_crit = LabelSmoothingLoss(nclass, 0.1)
 
     def forward(self, g0, g1, g2, g3, gt_target):
-        # g0: [N, 40, pileup_length, 5]
-        # g1: [N, 40, haplotype_length, 5]
+        # g0: [N, 40, 11, 5]
+        # g1: [N, 40, 5, 5]
         # g2: [N, 4, 25, 2]
         # g3: [N, 4, 25, 2]
 
-        if self.use_pileup:
-            g0_p = g0.permute(2, 0, 1, 3)  # [pl,N,40,5]
-            g0_s = g0.permute(0, 3, 1, 2)  # [N, 5, 40, pl]
-            g0_tag1 = g0_p[:, :, :20, 0]  # [pl,N,20]
-            g0_tag2 = g0_p[:, :, 20:, 0]  # [pl,N,20]
-            g0_tag1 = calculate_percentage(g0_tag1)  # [pl,N,5]
-            g0_tag2 = calculate_percentage(g0_tag2)  # [pl,N,5]
+        g0_p = g0.permute(2, 0, 1, 3)   # [11,N,40,5]
+        g0_s = g0.permute(0, 3, 1, 2) # [N, 5, 40, 11]
 
-        if self.use_haplotype:
-            g1_p = g1.permute(2, 0, 1, 3)  # [hl,N,40,5]
-            g1_s = g1.permute(0, 3, 1, 2)  # [N, 5, 40, hl]
-            g1_tag1 = g1_p[:, :, :20, 0]  # [hl,N,20]
-            g1_tag2 = g1_p[:, :, 20:, 0]  # [hl,N,20]
-            g1_tag1 = calculate_percentage(g1_tag1)  # [hl,N,5]
-            g1_tag2 = calculate_percentage(g1_tag2)  # [hl,N,5]
+        g1_p = g1.permute(2, 0, 1, 3)   # [11,N,40,5]
+        g1_s = g1.permute(0, 3, 1, 2) # [N, 5, 40, 11]
+        
 
-        if self.use_pileup and self.use_haplotype:
-            g0_g1_tag1_tag2_cat = torch.cat((g0_tag1, g0_tag2, g1_tag1, g1_tag2), 2)
-            g0_g1_p_out = self.haplotype_percentage(g0_g1_tag1_tag2_cat)[(self.haplotype_length - 1) // 2, :, :]
-            g0_g1_s_out = self.haplotype_base(torch.cat((g0_s, g1_s), 1))[(self.haplotype_length - 1) // 2]
-            out = self.out_layer(torch.cat((g0_g1_p_out, g0_g1_s_out), 1))
-        elif self.use_pileup and not self.use_haplotype:
-            g0_tag1_tag2_cat = torch.cat((g0_tag1, g0_tag2), 2)  # [pl, N, 10]
-            g0_p_out = self.haplotype_percentage(g0_tag1_tag2_cat)[(self.pileup_length - 1) // 2, :, :]  # [N, 256]
-            g0_s_out = self.haplotype_base(g0_s)[(self.pileup_length - 1) // 2]  # [N, 256]
-            out = self.out_layer(torch.cat((g0_p_out, g0_s_out), 1))
-        elif not self.use_pileup and self.use_haplotype:
-            g1_tag1_tag2_cat = torch.cat((g1_tag1, g1_tag2), 2)  # [hl, N, 10]
-            g1_p_out = self.haplotype_percentage(g1_tag1_tag2_cat)[(self.haplotype_length - 1) // 2, :, :]  # [N, 256]
-            g1_s_out = self.haplotype_base(g1_s)[(self.haplotype_length - 1) // 2]  # [N, 256]
-            out = self.out_layer(torch.cat((g1_p_out, g1_s_out), 1))
-        else:
-            print("model forward unsuccessfully.")
-            sys.exit(1)
+        # g0 = g0.permute(2, 0, 1, 3)  # [11, N, 40, 5]
+        # g1 = g1.permute(2, 0, 1, 3)  # [5, N, 40, 5]
+        # g2 = g2.permute(0, 3, 2, 1)  # [N, 2, 25, 4]
+        # g3 = g3.permute(0, 3, 2, 1)  # [N, 2, 25, 4]
+
+        # g0_tag1 = g0[:, :, :20, 0]  # [11,N,20]
+        # g0_tag2 = g0[:, :, 20:, 0]  # [11,N,20]
+        g0_tag1 = g0_p[:, :, :20, 0]  # [5,N,20]
+        g0_tag2 = g0_p[:, :, 20:, 0]  # [5,N,20]
+
+        g0_tag1 = calculate_percentage(g0_tag1) #[11,N,5]
+        g0_tag2 = calculate_percentage(g0_tag2) #[11,N,5]
+
+
+        g1_tag1 = g1_p[:, :, :20, 0]  # [5,N,20]
+        g1_tag2 = g1_p[:, :, 20:, 0]  # [5,N,20]
+
+        g1_tag1 = calculate_percentage(g1_tag1) #[11,N,5]
+        g1_tag2 = calculate_percentage(g1_tag2) #[11,N,5]
+
+        g0_g1_tag1_tag2_cat = torch.cat((g0_tag1,g0_tag2,g1_tag1,g1_tag2),2)   # [L, N, 20]
+
+
+        
+        g0_g1_p_out = self.haplotype_percentage(g0_g1_tag1_tag2_cat)[5, :, :]  # [N, 256]
+
+
+
+        # g0_tag1 = calculate_percentage(g0[:, :, :20, 0])  # [11,N,5]
+        # g0_tag2 = calculate_percentage(g0[:, :, 20:, 0])  # [11,N,5]
+        # g1_tag1 = calculate_percentage(g1[:, :, :20, 0])  # [5,N,5]
+        # g1_tag2 = calculate_percentage(g1[:, :, 20:, 0])  # [5,N,5]
+
+
+        # g0_tag1_out = self.surrounding_base(g0_tag1)  # [11, N, nOut]
+        # g0_tag1_out = g0_tag1_out[5, :, :]
+        # g0_tag2_out = self.surrounding_base(g0_tag2)  # [11, N, nOut]
+        # g0_tag2_out = g0_tag2_out[5, :, :]
+
+        # g1_tag1_tag2_cat = torch.cat((g1_tag1, g1_tag2), 2)   # [L, N, C]
+        # g1_tag1_tag2_cat = g1[:, :, :, 0]  # [L, N, C]
+        # out = self.haplotype_base(g1_tag1_tag2_cat)[2, :, :]
+
+        # g1_tag1_out = self.haplotype_base(g1_tag1)  # [5, N, nOut]
+        # g1_tag1_out = g1_tag1_out[2, :, :]
+        # g1_tag2_out = self.haplotype_base(g1_tag2)  # [5, N, nOut]
+        # g1_tag2_out = g1_tag2_out[2, :, :]
+
+        g0_g1_s_out = self.haplotype_base(torch.cat((g0_s, g1_s),1))[5]   # [N, 256]
+
+        out = self.out_layer(torch.cat((g0_g1_p_out, g0_g1_s_out), 1))
+
+
+
+
+
+        # g0_o = g0_o[5,:,:]
+        # g1_o = self.crnn_base(g1)   # [5, N, nclass]
+        # g1_o = g1_o[2,:,:]
+
+        # g2_o = self.cnn_edge(g2)
+        # g3_o = self.cnn_pair(g3)
+
+        # if self.use_g0 and self.use_g1 and self.use_g2 and self.use_g3:
+        #     out = torch.cat((g0_tag1_out, g0_tag2_out, g1_tag1_out, g1_tag2_out, g2_o, g3_o), dim=1)
+        # elif self.use_g0 and self.use_g1 and self.use_g2 and not self.use_g3:
+        #     out = torch.cat((g0_tag1_out, g0_tag2_out, g1_tag1_out, g1_tag2_out, g2_o), dim=1)
+        # elif self.use_g0 and self.use_g1 and not self.use_g2 and not self.use_g3:
+        #     out = torch.cat((g0_tag1_out, g0_tag2_out, g1_tag1_out, g1_tag2_out), dim=1)
+        # elif self.use_g0 and not self.use_g1 and not self.use_g2 and not self.use_g3:
+        #     out = torch.cat((g0_tag1_out, g0_tag2_out), dim=1)
+        # elif not self.use_g0 and self.use_g1 and not self.use_g2 and not self.use_g3:
+        #     out = torch.cat((g1_tag1_out, g1_tag2_out), dim=1)
+        # else:
+        #     print("create model unsuccessfully.")
+        #     sys.exit(1)
+        # out = self.out_layer(out)
 
         gt_loss = self.gt_crit(out.contiguous().view(-1, self.nclass), gt_target.contiguous().view(-1))
-
-        """
-        # g0_p shape: torch.Size([23, 27, 40, 5])
-        # g1_p shape: torch.Size([11, 27, 40, 5])
-        # g0_s shape: torch.Size([27, 5, 40, 23])
-        # g1_s shape: torch.Size([27, 5, 40, 11])
-        # g0_tag1 shape: torch.Size([23, 27, 5])
-        # g1_tag1 shape: torch.Size([11, 27, 5])
-        # g0_tag1_tag2_cat shape: torch.Size([23, 27, 10])
-        # g1_tag1_tag2_cat shape: torch.Size([11, 27, 10])
-        # g0_p_out shape: torch.Size([27, 256])
-        # g1_p_out shape: torch.Size([27, 256])
-        # g0_s_out shape: torch.Size([27, 256])
-        # g1_s_out shape: torch.Size([27, 256])
-        # out shape: torch.Size([27, 10])
-
-        print('g0_p shape:', g0_p.shape)
-        print('g1_p shape:', g1_p.shape)
-        print('g0_s shape:', g0_s.shape)
-        print('g1_s shape:', g1_s.shape)
-        print('g0_tag1 shape:', g0_tag1.shape)
-        print('g1_tag1 shape:', g1_tag1.shape)
-        print('g0_tag1_tag2_cat shape:', g0_tag1_tag2_cat.shape)
-        print('g1_tag1_tag2_cat shape:', g1_tag1_tag2_cat.shape)
-        print('g0_p_out shape:', g0_p_out.shape)
-        print('g1_p_out shape:', g1_p_out.shape)
-        print('g0_s_out shape:', g0_s_out.shape)
-        print('g1_s_out shape:', g1_s_out.shape)
-        print('out shape:', out.shape)
-        """
         return gt_loss, out
 
     def predict(self, g0, g1, g2, g3):
-        if self.use_pileup:
-            g0_p = g0.permute(2, 0, 1, 3)  # [pl,N,40,5]
-            g0_s = g0.permute(0, 3, 1, 2)  # [N, 5, 40, pl]
-            g0_tag1 = g0_p[:, :, :20, 0]  # [pl,N,20]
-            g0_tag2 = g0_p[:, :, 20:, 0]  # [pl,N,20]
-            g0_tag1 = calculate_percentage(g0_tag1)  # [pl,N,5]
-            g0_tag2 = calculate_percentage(g0_tag2)  # [pl,N,5]
-            # g0_tag1_tag2_cat = torch.cat((g0_tag1, g0_tag2), 2)  # [pl, N, 10]
-            # g0_p_out = self.haplotype_percentage_g0(g0_tag1_tag2_cat)[(self.pileup_length - 1) // 2, :, :]  # [N, 256]
-            # g0_s_out = self.haplotype_base_g0(g0_s)[(self.pileup_length - 1) // 2]  # [N, 256]
+        g0_p = g0.permute(2, 0, 1, 3)   # [11,N,40,5]
+        g0_s = g0.permute(0, 3, 1, 2) # [N, 5, 40, 11]
+        g1_p = g1.permute(2, 0, 1, 3)   # [11,N,40,5]
+        g1_s = g1.permute(0, 3, 1, 2) # [N, 5, 40, 11]
 
-        if self.use_haplotype:
-            g1_p = g1.permute(2, 0, 1, 3)  # [hl,N,40,5]
-            g1_s = g1.permute(0, 3, 1, 2)  # [N, 5, 40, hl]
-            g1_tag1 = g1_p[:, :, :20, 0]  # [hl,N,20]
-            g1_tag2 = g1_p[:, :, 20:, 0]  # [hl,N,20]
-            g1_tag1 = calculate_percentage(g1_tag1)  # [hl,N,5]
-            g1_tag2 = calculate_percentage(g1_tag2)  # [hl,N,5]
-            # g1_tag2_tag2_cat = torch.cat((g1_tag1, g1_tag2), 2)  # [hl, N, 10]
-            # g1_p_out = self.haplotype_percentage_g1(g1_tag2_tag2_cat)[(self.haplotype_length - 1) // 2, :,
-            #            :]  # [N, 256]
-            # g1_s_out = self.haplotype_base_g1(g1_s)[(self.haplotype_length - 1) // 2]  # [N, 256]
+        g0_tag1 = g0_p[:, :, :20, 0]  # [5,N,20]
+        g0_tag2 = g0_p[:, :, 20:, 0]  # [5,N,20]
 
-        if self.use_pileup and self.use_haplotype:
-            g0_g1_tag1_tag2_cat = torch.cat((g0_tag1, g0_tag2, g1_tag1, g1_tag2), 2)
-            g0_g1_p_out = self.haplotype_percentage(g0_g1_tag1_tag2_cat)[(self.haplotype_length - 1) // 2, :, :]
-            g0_g1_s_out = self.haplotype_base(torch.cat((g0_s, g1_s), 1))[(self.haplotype_length - 1) // 2]
-            out = self.out_layer(torch.cat((g0_g1_p_out, g0_g1_s_out), 1))
-        elif self.use_pileup and not self.use_haplotype:
-            g0_tag1_tag2_cat = torch.cat((g0_tag1, g0_tag2), 2)  # [pl, N, 10]
-            g0_p_out = self.haplotype_percentage(g0_tag1_tag2_cat)[(self.pileup_length - 1) // 2, :, :]  # [N, 256]
-            g0_s_out = self.haplotype_base(g0_s)[(self.pileup_length - 1) // 2]  # [N, 256]
-            out = self.out_layer(torch.cat((g0_p_out, g0_s_out), 1))
-        elif not self.use_pileup and self.use_haplotype:
-            g1_tag1_tag2_cat = torch.cat((g1_tag1, g1_tag2), 2)  # [hl, N, 10]
-            g1_p_out = self.haplotype_percentage(g1_tag1_tag2_cat)[(self.haplotype_length - 1) // 2, :, :]  # [N, 256]
-            g1_s_out = self.haplotype_base(g1_s)[(self.haplotype_length - 1) // 2]  # [N, 256]
-            out = self.out_layer(torch.cat((g1_p_out, g1_s_out), 1))
-        else:
-            print("model predict unsuccessfully.")
-            sys.exit(1)
+        g0_tag1 = calculate_percentage(g0_tag1) #[11,N,5]
+        g0_tag2 = calculate_percentage(g0_tag2) #[11,N,5]
+
+
+        g1_tag1 = g1_p[:, :, :20, 0]  # [5,N,20]
+        g1_tag2 = g1_p[:, :, 20:, 0]  # [5,N,20]
+
+        g1_tag1 = calculate_percentage(g1_tag1) #[11,N,5]
+        g1_tag2 = calculate_percentage(g1_tag2) #[11,N,5]
+
+        g0_g1_tag1_tag2_cat = torch.cat((g0_tag1,g0_tag2,g1_tag1,g1_tag2),2)   # [L, N, 20]
+
+        g0_g1_p_out = self.haplotype_percentage(g0_g1_tag1_tag2_cat)[5, :, :]  # [N, 256]
+
+        g0_g1_s_out = self.haplotype_base(torch.cat((g0_s, g1_s),1))[5]   # [N, 256]
+
+        out = self.out_layer(torch.cat((g0_g1_p_out, g0_g1_s_out), 1))
 
         out = torch.softmax(out, 1)
         return out

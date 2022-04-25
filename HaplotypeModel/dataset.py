@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 import torch
 from tqdm import tqdm
+import h5py
 import numpy as np
 import pandas as pd
 import argparse
@@ -12,7 +13,6 @@ import tables
 from get_truth import GT21_LABLES
 
 TABLE_FILTERS = tables.Filters(complib='blosc:lz4hc', complevel=5)
-
 
 def calculate_percentage(ts):
     # ts: L, N, C
@@ -82,9 +82,9 @@ class TrainDataset(Dataset):
         positions1 = [str(v, encoding='utf-8') for v in np.array(table_file1.root.position).squeeze(1).tolist()]
         surrounding_read_matrix1 = np.array(table_file1.root.surrounding_read_matrix)
         surrounding_mask_matrix1 = (surrounding_read_matrix1 != -2).astype(int)  # [N,depth,11]
-        surrounding_depth1 = (surrounding_mask_matrix1.sum(2) > 0).sum(1)
+        surrounding_depth1 = (surrounding_mask_matrix1.sum(2)>0).sum(1)
 
-        assert len(surrounding_depth1) == len(positions1)
+        assert len(surrounding_depth1)==len(positions1)
 
         table_file2 = tables.open_file(self.bin_paths2[i], 'r')
         # positions2 = np.array(table_file2.root.position).tolist()
@@ -98,10 +98,10 @@ class TrainDataset(Dataset):
         while k < len(positions1) and j < len(positions2):
             try:
                 if positions1[k] == positions2[j]:
-                    if surrounding_depth1[k] < self.min_depth or surrounding_depth2[j] < self.min_depth:
+                    if surrounding_depth1[k]<self.min_depth or surrounding_depth2[j]<self.min_depth:
                         # reads覆盖度过低，则不作为训练数据
-                        k += 1
-                        j += 1
+                        k+=1
+                        j+=1
                         continue
                     idx1.append(k)
                     idx2.append(j)
@@ -132,13 +132,13 @@ class TrainDataset(Dataset):
         phase_matrix1 = np.ones_like(read_matrix1)  # [N,depth,adjacent*2+1]
 
         surrounding_read_matrix1 = np.array(table_file1.root.surrounding_read_matrix)[idx1, :self.max_depth, :]
-        surrounding_base_quality_matrix1 = np.array(table_file1.root.surrounding_base_quality_matrix)[idx1,
-                                           :self.max_depth, :]
-        surrounding_mapping_quality_matrix1 = np.array(table_file1.root.surrounding_mapping_quality_matrix)[idx1,
-                                              :self.max_depth, :]
+        surrounding_base_quality_matrix1 = np.array(table_file1.root.surrounding_base_quality_matrix)[idx1, :self.max_depth, :]
+        surrounding_mapping_quality_matrix1 = np.array(table_file1.root.surrounding_mapping_quality_matrix)[idx1, :self.max_depth, :]
 
         surrounding_mask_matrix1 = (surrounding_read_matrix1 != -2).astype(int)  # [N,depth,11]
         surrounding_phase_matrix1 = np.ones_like(surrounding_read_matrix1)  # [N,depth,11]
+
+
 
         edge_matrix2 = np.array(table_file2.root.edge_matrix).transpose((0, 2, 1))[idx2]  # [N,adjacent*2,25]
         pair_route2 = np.array(table_file2.root.pair_route).transpose((0, 2, 1))[idx2]  # [N,adjacent*2,25]
@@ -151,25 +151,19 @@ class TrainDataset(Dataset):
         phase_matrix2 = np.ones_like(read_matrix2) + 1  # [N,max_depth,adjacent*2+1]
 
         surrounding_read_matrix2 = np.array(table_file2.root.surrounding_read_matrix)[idx2, :self.max_depth, :]
-        surrounding_base_quality_matrix2 = np.array(table_file2.root.surrounding_base_quality_matrix)[idx2,
-                                           :self.max_depth, :]
-        surrounding_mapping_quality_matrix2 = np.array(table_file2.root.surrounding_mapping_quality_matrix)[idx2,
-                                              :self.max_depth, :]
+        surrounding_base_quality_matrix2 = np.array(table_file2.root.surrounding_base_quality_matrix)[idx2, :self.max_depth, :]
+        surrounding_mapping_quality_matrix2 = np.array(table_file2.root.surrounding_mapping_quality_matrix)[idx2, :self.max_depth, :]
         surrounding_mask_matrix2 = (surrounding_read_matrix2 != -2).astype(int)  # [N,depth,11]
-        surrounding_phase_matrix2 = np.ones_like(surrounding_read_matrix2) + 1  # [N,depth,11]
+        surrounding_phase_matrix2 = np.ones_like(surrounding_read_matrix2)+1  # [N,depth,11]
 
-        cat_surrounding_read_matrix = np.expand_dims(
-            np.concatenate([surrounding_read_matrix1, surrounding_read_matrix2], axis=1), axis=3)
-        cat_surrounding_base_quality_matrix = np.expand_dims(
-            np.concatenate([surrounding_base_quality_matrix1, surrounding_base_quality_matrix2], axis=1), axis=3)
-        cat_surrounding_mapping_quality_matrix = np.expand_dims(
-            np.concatenate([surrounding_mapping_quality_matrix1, surrounding_mapping_quality_matrix2], axis=1), axis=3)
-        cat_surrounding_mask_matrix = np.expand_dims(
-            np.concatenate([surrounding_mask_matrix1, surrounding_mask_matrix2], axis=1), axis=3)
-        cat_surrounding_phase_matrix = np.expand_dims(
-            np.concatenate([surrounding_phase_matrix1, surrounding_phase_matrix2], axis=1), axis=3)
+
+        cat_surrounding_read_matrix = np.expand_dims(np.concatenate([surrounding_read_matrix1,surrounding_read_matrix2],axis=1),axis=3)
+        cat_surrounding_base_quality_matrix = np.expand_dims(np.concatenate([surrounding_base_quality_matrix1,surrounding_base_quality_matrix2],axis=1),axis=3)
+        cat_surrounding_mapping_quality_matrix = np.expand_dims(np.concatenate([surrounding_mapping_quality_matrix1, surrounding_mapping_quality_matrix2], axis=1), axis=3)
+        cat_surrounding_mask_matrix = np.expand_dims(np.concatenate([surrounding_mask_matrix1, surrounding_mask_matrix2], axis=1), axis=3)
+        cat_surrounding_phase_matrix = np.expand_dims(np.concatenate([surrounding_phase_matrix1, surrounding_phase_matrix2], axis=1), axis=3)
         g0 = np.concatenate([cat_surrounding_read_matrix, cat_surrounding_base_quality_matrix, \
-                             cat_surrounding_mapping_quality_matrix, cat_surrounding_mask_matrix, \
+                             cat_surrounding_mapping_quality_matrix, cat_surrounding_mask_matrix,\
                              cat_surrounding_phase_matrix], axis=3)  # [N,depth,11,5]
 
         cat_read_matrix = np.expand_dims(np.concatenate([read_matrix1, read_matrix2], axis=1), axis=3)
@@ -192,13 +186,12 @@ class TrainDataset(Dataset):
         zy_label = labels[:, 2]
 
         # filter with high confident region and shuffle
-        variants_idx = np.where((high_condfident_label > 0) & (zy_label >= 0) & (gt_label >= 0) & (gt_label < 10))[0]
-        non_variants_idx = np.where((high_condfident_label > 0) & (zy_label == -1))[0]
+        variants_idx = np.where((high_condfident_label > 0) & (zy_label >= 0) & (gt_label >=0 ) & (gt_label < 10))[0]
+        non_variants_idx = np.where((high_condfident_label > 0) & (zy_label==-1))[0]
         if len(variants_idx) > len(non_variants_idx):
             filtered_idx = np.concatenate((variants_idx, non_variants_idx))
         else:
-            filtered_idx = np.concatenate(
-                (variants_idx, np.random.choice(non_variants_idx, size=len(variants_idx), replace=False)))
+            filtered_idx = np.concatenate((variants_idx, np.random.choice(non_variants_idx,size=len(variants_idx),replace=False)))
         # filtered_idx = np.where((high_condfident_label > 0) & (gt_label >= 0) & (gt_label < 10))[0]
         np.random.shuffle(filtered_idx)
         filtered_idx = filtered_idx.tolist()
@@ -217,10 +210,7 @@ class TrainDataset(Dataset):
 ###
 
 class TrainDatasetPreLoad(Dataset):
-    def __init__(self, data_dir1, data_dir2, pileup_length, haplotype_length, max_depth=20, min_depth=5):
-        assert pileup_length % 2 == 1
-        assert haplotype_length % 2 == 1
-        assert pileup_length == haplotype_length
+    def __init__(self, data_dir1, data_dir2, max_depth=20, min_depth=5):
         bin_names1 = os.listdir(data_dir1)
         bin_paths1 = []
         for name in bin_names1:
@@ -297,6 +287,7 @@ class TrainDatasetPreLoad(Dataset):
 
             surrounding_mask_matrix1 = (surrounding_read_matrix1 != -2).astype(int)  # [N,depth,11]
             surrounding_phase_matrix1 = np.ones_like(surrounding_read_matrix1)  # [N,depth,11]
+
 
             edge_matrix2 = np.array(table_file2.root.edge_matrix).transpose((0, 2, 1))[idx2]  # [N,adjacent*2,25]
             pair_route2 = np.array(table_file2.root.pair_route).transpose((0, 2, 1))[idx2]  # [N,adjacent*2,25]
@@ -386,12 +377,11 @@ class TrainDatasetPreLoad(Dataset):
             g1_tag1_base_percentage = calculate_percentage(g1_tag1_base)  # [L,N,5]
             g1_tag2_base_percentage = calculate_percentage(g1_tag2_base)
 
-            # TODO: 可修改haplotype特征的长度
-            g1_tag1_max = np.max(g1_tag1_base_percentage[(haplotype_length - 1) // 2], axis=1)  # [N]
-            g1_tag1_argmax = np.argmax(g1_tag1_base_percentage[(haplotype_length - 1) // 2], axis=1)  # [A,C,G,T,D]
+            g1_tag1_max = np.max(g1_tag1_base_percentage[5], axis=1)  # [N]
+            g1_tag1_argmax = np.argmax(g1_tag1_base_percentage[5], axis=1)  # [A,C,G,T,D]
 
-            g1_tag2_max = np.max(g1_tag2_base_percentage[(haplotype_length - 1) // 2], axis=1)
-            g1_tag2_argmax = np.argmax(g1_tag2_base_percentage[(haplotype_length - 1) // 2], axis=1)
+            g1_tag2_max = np.max(g1_tag2_base_percentage[5], axis=1)
+            g1_tag2_argmax = np.argmax(g1_tag2_base_percentage[5], axis=1)
 
             ignore_idx = []
             sel_idx = np.where((g1_tag1_max >= 0.70) & (g1_tag2_max >= 0.70))[0]
@@ -410,7 +400,7 @@ class TrainDatasetPreLoad(Dataset):
             print(self.bin_paths1[i], ':')
             print(len(ignore_idx), len(mask) - len(ignore_idx))
 
-            bins.append([g0, g1, g2, g3, gt_label])
+            bins.append([g0,g1,g2,g3,gt_label])
             table_file1.close()
             table_file2.close()
 
@@ -465,10 +455,10 @@ class EvaluateDataset(Dataset):
         while k < len(positions1) and j < len(positions2):
             try:
                 if positions1[k] == positions2[j]:
-                    if surrounding_depth1[k] < self.min_depth or surrounding_depth2[j] < self.min_depth:
+                    if surrounding_depth1[k]<self.min_depth or surrounding_depth2[j]<self.min_depth:
                         # reads覆盖度过低，则不作为训练数据
-                        k += 1
-                        j += 1
+                        k+=1
+                        j+=1
                         continue
                     idx1.append(k)
                     idx2.append(j)
@@ -580,8 +570,7 @@ class EvaluateDataset(Dataset):
         table_file1.close()
         table_file2.close()
 
-        return position[filtered_idx].tolist(), g0[filtered_idx], g1[filtered_idx], g2[filtered_idx], g3[filtered_idx], \
-               gt_label[filtered_idx]
+        return position[filtered_idx].tolist(), g0[filtered_idx], g1[filtered_idx], g2[filtered_idx], g3[filtered_idx], gt_label[filtered_idx]
 
     def __len__(self):
         return len(self.bin_paths1)
@@ -592,10 +581,7 @@ class EvaluateDataset(Dataset):
 ###
 
 class EvaluateDatasetPreLoad(Dataset):
-    def __init__(self, data_dir1, data_dir2, pileup_length, haplotype_length, max_depth=20, min_depth=5):
-        assert pileup_length % 2 == 1
-        assert haplotype_length % 2 == 1
-        assert pileup_length == haplotype_length
+    def __init__(self, data_dir1, data_dir2, max_depth=20, min_depth=5):
         bin_names1 = os.listdir(data_dir1)
         bin_paths1 = []
         for name in bin_names1:
@@ -765,12 +751,11 @@ class EvaluateDatasetPreLoad(Dataset):
             g1_tag1_base_percentage = calculate_percentage(g1_tag1_base)  # [L,N,5]
             g1_tag2_base_percentage = calculate_percentage(g1_tag2_base)
 
-            #TODO： 可修改haplotype特征的长度
-            g1_tag1_max = np.max(g1_tag1_base_percentage[(haplotype_length - 1) // 2], axis=1)  # [N]
-            g1_tag1_argmax = np.argmax(g1_tag1_base_percentage[(haplotype_length - 1) // 2], axis=1)  # [A,C,G,T,D]
+            g1_tag1_max = np.max(g1_tag1_base_percentage[5], axis=1)  # [N]
+            g1_tag1_argmax = np.argmax(g1_tag1_base_percentage[5], axis=1)  # [A,C,G,T,D]
 
-            g1_tag2_max = np.max(g1_tag2_base_percentage[(haplotype_length - 1) // 2], axis=1)
-            g1_tag2_argmax = np.argmax(g1_tag2_base_percentage[(haplotype_length - 1) // 2], axis=1)
+            g1_tag2_max = np.max(g1_tag2_base_percentage[5], axis=1)
+            g1_tag2_argmax = np.argmax(g1_tag2_base_percentage[5], axis=1)
 
             ignore_idx = []
             sel_idx = np.where((g1_tag1_max >= 0.70) & (g1_tag2_max >= 0.70))[0]
@@ -790,7 +775,7 @@ class EvaluateDatasetPreLoad(Dataset):
             print(self.bin_paths1[i], ':')
             print(len(ignore_idx), len(mask) - len(ignore_idx))
 
-            bins.append([position, g0, g1, g2, g3, gt_label])
+            bins.append([position,g0,g1,g2,g3,gt_label])
 
             table_file1.close()
             table_file2.close()
@@ -841,15 +826,16 @@ class PredictDataset(Dataset):
         surrounding_mask_matrix2 = (surrounding_read_matrix2 != -2).astype(int)  # [N,depth,11]
         surrounding_depth2 = (surrounding_mask_matrix2.sum(2) > 0).sum(1)
 
+
         idx1, idx2 = [], []
         k, j = 0, 0
         while k < len(positions1) and j < len(positions2):
             try:
                 if positions1[k] == positions2[j]:
-                    if surrounding_depth1[k] < self.min_depth or surrounding_depth2[j] < self.min_depth:
+                    if surrounding_depth1[k]<self.min_depth or surrounding_depth2[j]<self.min_depth:
                         # reads覆盖度过低，则不作为训练数据
-                        k += 1
-                        j += 1
+                        k+=1
+                        j+=1
                         continue
                     idx1.append(k)
                     idx2.append(j)
