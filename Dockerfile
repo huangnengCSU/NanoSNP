@@ -10,9 +10,9 @@ RUN wget https://github.com/samtools/bcftools/releases/download/1.15.1/bcftools-
 RUN tar -jxvf bcftools-1.15.1.tar.bz2 && cd bcftools-1.15.1 && ./configure && make && make install
 RUN cd /tools/
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-RUN bash Miniconda3-latest-Linux-x86_64.sh -b
+RUN bash Miniconda3-latest-Linux-x86_64.sh -b -p /tools/miniconda3/
 RUN rm Miniconda3-latest-Linux-x86_64.sh
-ENV PATH=/root/miniconda3/bin:${PATH} 
+ENV PATH=/tools/miniconda3/bin:${PATH}
 RUN conda config --add channels bioconda
 RUN conda config --add channels conda-forge
 # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
