@@ -65,7 +65,7 @@ def predict(model, test_data, batch_size, output_file, device):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config', type=str, default='config/pore-c.yaml', help='path to config file')
+    parser.add_argument('-config', type=str, required=True, help='path to config file')
     parser.add_argument('-model_path', required=True, help='path to trained model')
     parser.add_argument('-data_tag1', required=True, help='directory of bin files')
     parser.add_argument('-data_tag2', required=True, help='directory of bin files')
