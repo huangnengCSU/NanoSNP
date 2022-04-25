@@ -32,3 +32,12 @@ COPY dna_sv_tensor /tools/dna_sv_tensor
 RUN cd /tools/dna_sv_tensor/src/ && make
 RUN cd /tools/dna_sv_tensor/src/scripts/ && chmod +x make_predict_data.sh make_train_data.sh
 ENV PATH=/tools/dna_sv_tensor/src/scripts:${PATH}
+
+RUN mkdir -p /tools/HaplotypeModel
+COPY HaplotypeModel /tools/HaplotypeModel
+RUN mkdir -p PileupModel 
+COPY PileupModel /tools/PileupModel
+RUN mkdir -p scripts
+COPY scripts /tools/scripts
+COPY run_caller.sh /tools/
+ENV PATH=/tools/:${PATH}
