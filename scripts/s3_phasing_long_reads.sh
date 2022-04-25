@@ -64,4 +64,13 @@ time parallel --joblog whatshap_haplotag.log -j$THREADS \
 $PHASED_PREFIX.{1}.phased.vcf.gz \
 $SPLITED_BAMS/splited_{1}.bam" ::: ${CHR[@]}
 
-parallel -j${THREADS} samtools index -@ 10 ${HAPLOTAG_DIR}/{1}.bam ::: ${CHR[@]}
+
+CTGS=()
+for ctg in ${CHR[@]}; do
+    if [ -f ${HAPLOTAG_DIR}/${ctg}.bam ]
+    then
+        CTGS[${#CTGS[*]}]=${ctg}
+    fi
+done
+
+parallel -j${THREADS} samtools index -@ 10 ${HAPLOTAG_DIR}/{1}.bam ::: ${CTGS[@]}
