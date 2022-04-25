@@ -14,13 +14,13 @@ RUN bash Miniconda3-latest-Linux-x86_64.sh -b
 RUN rm Miniconda3-latest-Linux-x86_64.sh
 ENV PATH=/root/miniconda3/bin:${PATH} 
 RUN conda config --add channels bioconda
-# RUN conda config --add channels conda-forge
-RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
-RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
-RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
-# RUN conda install cudatoolkit=10.2
-# RUN conda install pytorch-gpu
-RUN conda install pytorch-cpu
+RUN conda config --add channels conda-forge
+# RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
+# RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
+# RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
+RUN conda install cudatoolkit=10.2
+RUN conda install pytorch-gpu
+# RUN conda install pytorch-cpu
 RUN conda install whatshap
 RUN pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
 RUN python -m pip install git+https://github.com/lessw2020/Ranger21.git
