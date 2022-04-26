@@ -16,15 +16,18 @@ print_help_messages()
     echo $'  -f, --ref_fn=FILE             FASTA reference file input. The input file must be samtools indexed.'
     echo $'  -t, --threads=INT             Max #threads to be used. The full genome will be divided into small chunks for parallel processing. Each chunk will use 4 threads. The #chunks being processed simultaneously is ceil(#threads/4)*3. 3 is the overloading factor.'
     echo $'  -o, --output=PATH             output directory.'
+    echo $'  -g, --usecontig               Call SNPs using contigs as the reference genome.'
     echo $''
     echo $''
 }
+
+USE_CONTIG="false"
 
 # ERROR="\\033[31m[ERROR]"
 # WARNING="\\033[33m[WARNING]"
 # NC="\\033[0m"
 
-ARGS=`getopt -o b:f:t:o: -l bam_fn:,ref_fn:,threads:,output:,help -- "$@"`
+ARGS=`getopt -o b:f:t:o:g -l bam_fn:,ref_fn:,threads:,output:,usecontig,help -- "$@"`
 
 [ $? -ne 0 ] && ${Usage}
 eval set -- "${ARGS}"
@@ -46,6 +49,9 @@ while true; do
     -o|--output )
             OUTPUT_FOLDER="$2"
             shift
+            ;;
+    -g|--usecontig )
+            USE_CONTIG="true"
             ;;
     -h|--help )
             print_help_messages
@@ -76,11 +82,20 @@ threads=${THREADS}
 
 mkdir -p ${output}
 
-bash scripts/s1_pileup_model_feature_generation.sh \
-${bam} \
-${ref} \
-${output} \
-${threads} > ${output}/s1.log 2>&1
+if $USE_CONTIG
+then
+      bash scripts/s1_pileup_model_feature_generation_with_contig.sh \
+      ${bam} \
+      ${ref} \
+      ${output} \
+      ${threads} > ${output}/s1.log 2>&1
+else
+      bash scripts/s1_pileup_model_feature_generation.sh \
+      ${bam} \
+      ${ref} \
+      ${output} \
+      ${threads} > ${output}/s1.log 2>&1
+fi
 
 bash scripts/s2_pileup_model_predict.sh \
 ${output}/bin_predict_data \
