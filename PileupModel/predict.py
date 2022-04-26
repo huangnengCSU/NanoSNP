@@ -166,7 +166,7 @@ def main():
     checkpoint = torch.load(opt.model_path, map_location=device)
     pred_model.encoder.load_state_dict(checkpoint['encoder'])
     pred_model.forward_layer.load_state_dict(checkpoint['forward_layer'])
-    testing_paths = [opt.data + '/' + fname for fname in os.listdir(opt.data)]
+    testing_paths = [opt.data + '/' + fname for fname in os.listdir(opt.data) if fname.endswith('.bin')]
     predict(pred_model, testing_paths, opt.batch_size, opt.output, device)
 
 
