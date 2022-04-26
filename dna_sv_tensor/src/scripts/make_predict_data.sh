@@ -16,15 +16,18 @@ print_help_messages()
     echo $'  -f, --ref_fn=FILE             FASTA reference file input. The input file must be samtools indexed.'
     echo $'  -t, --threads=INT             Max #threads to be used. The full genome will be divided into small chunks for parallel processing. Each chunk will use 4 threads. The #chunks being processed simultaneously is ceil(#threads/4)*3. 3 is the overloading factor.'
     echo $'  -o, --output=PATH             output directory.'
+    echo $'  -g, --usecontig               Call SNPs using contigs as the reference genome.'
     echo $''
     echo $''
 }
+
+USE_CONTIG="false"
 
 # ERROR="\\033[31m[ERROR]"
 # WARNING="\\033[33m[WARNING]"
 # NC="\\033[0m"
 
-ARGS=`getopt -o b:f:t:o: -l bam_fn:,ref_fn:,threads:,output:,help -- "$@"`
+ARGS=`getopt -o b:f:t:o:g -l bam_fn:,ref_fn:,threads:,output:,usecontig,help -- "$@"`
 
 [ $? -ne 0 ] && ${Usage}
 eval set -- "${ARGS}"
@@ -46,6 +49,9 @@ while true; do
     -o|--output )
             OUTPUT_FOLDER="$2"
             shift
+            ;;
+    -g|--usecontig )
+            USE_CONTIG="true"
             ;;
     -h|--help )
             print_help_messages
@@ -71,7 +77,7 @@ fi
 
 ############## The following options must be provided
 
-ALL_CHR_LIST=(chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 chr20 chr21 chr22 chrX chrY)
+#ALL_CHR_LIST=(chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 chr20 chr21 chr22 chrX chrY)
 
 BIN_EXEC_PATH=${SCRIPT_PATH}/../../Linux-amd64/bin/
 
@@ -84,6 +90,15 @@ SORTED_BAM_PATH=${BAM_FILE_PATH}
 WORK_DIR=${OUTPUT_FOLDER}
 
 CPU_THREADS=${THREADS}
+
+if $USE_CONTIG
+then
+    ALL_CHR_LIST[${#arr[*]}]=`cat ${REFERENCE}.fai | awk -F'\t' '{print $1}'`
+    echo "CHR_LIST: ${ALL_CHR_LIST[@]}"
+else
+    ALL_CHR_LIST=(chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 chr20 chr21 chr22 chrX chrY)
+    echo "CHR_LIST: ${ALL_CHR_LIST[@]}"
+fi
 
 ############# workding directory
 
