@@ -19,6 +19,7 @@ PHASED_DIR=$5
 SPLITED_BAMS=$6
 SPLITED_VCFS=$7
 HAPLOTAG_DIR=$8
+OUTPUT_DIR=$9
 
 
 PHASED_PREFIX=$PHASED_DIR/`basename $PHASED_DIR`
@@ -29,19 +30,19 @@ CHR[${#arr[*]}]=`cat $REF.fai | xargs -I RD echo RD | cut -f1`
 mkdir -p $PHASED_DIR $SPLITED_BAMS $SPLITED_VCFS $HAPLOTAG_DIR
 
 ## split alignment bam file by chromosomes.
-time parallel --joblog splited_bams.log -j$THREADS \
+time parallel --joblog ${OUTPUT_DIR}/splited_bams.log -j$THREADS \
 "samtools view -b -h $BAM {1} > $SPLITED_BAMS/splited_{1}.bam && \
 samtools index $SPLITED_BAMS/splited_{1}.bam" ::: ${CHR[@]}
 
 
 ## split vcf file by chromosomes.
 bgzip -c $INPUT_VCF > $INPUT_VCF.gz && tabix -p vcf $INPUT_VCF.gz
-time parallel --joblog splited_vcf.log -j$THREADS \
+time parallel --joblog ${OUTPUT_DIR}/splited_vcf.log -j$THREADS \
 "bcftools view -r {1} $INPUT_VCF.gz > $SPLITED_VCFS/{1}.splited.vcf" ::: ${CHR[@]}
 
 
 ## whatshap phase
-time parallel --joblog whatshap_phase.log -j$THREADS \
+time parallel --joblog ${OUTPUT_DIR}/whatshap_phase.log -j$THREADS \
 "whatshap phase \
 --output $PHASED_PREFIX.{1}.phased.vcf \
 --reference $REF \
@@ -55,7 +56,7 @@ parallel -j${THREADS} "bgzip -c $PHASED_PREFIX.{1}.phased.vcf > $PHASED_PREFIX.{
 
 
 ## whatshap haplotag
-time parallel --joblog whatshap_haplotag.log -j$THREADS \
+time parallel --joblog ${OUTPUT_DIR}/whatshap_haplotag.log -j$THREADS \
 "whatshap haplotag \
 --output ${HAPLOTAG_DIR}/{1}.bam \
 --reference $REF \

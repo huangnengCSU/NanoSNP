@@ -17,13 +17,14 @@ THREADS=$3
 HAPLOTAG_SPLIT_BAMS=$4
 BIN_DIR1=$5
 BIN_DIR2=$6
+OUTPUT_DIR=$7
 
 mkdir -p $HAPLOTAG_SPLIT_BAMS $BIN_DIR1 $BIN_DIR2
 
 CHR=()
 CHR[${#arr[*]}]=`ls $HAPLOTAG_DIR/*.bam | xargs -I file basename file .bam`
 
-time parallel --joblog split_haplotag_bam.log -j$THREADS \
+time parallel --joblog ${OUTPUT_DIR}/split_haplotag_bam.log -j$THREADS \
 "python ${script_dir}/split_bam_by_tag.py -in_bam $HAPLOTAG_DIR/{1}.bam \
 -h1 $HAPLOTAG_SPLIT_BAMS/{1}_TAG_1.bam \
 -h2 $HAPLOTAG_SPLIT_BAMS/{1}_TAG_2.bam \
@@ -39,7 +40,7 @@ time parallel -j2 "samtools index -@ 10 merged_TAG_{1}.bam" ::: ${A[@]}
 
 command_path=$(cd ${script_dir}/../HaplotypeModel/;pwd)
 
-time parallel --joblog make_edge_matrix.log -j2 \
+time parallel --joblog ${OUTPUT_DIR}/make_edge_matrix.log -j2 \
 "python ${command_path}/make_predict_groups.py \
 --bam merged_TAG_{1}.bam \
 --pileup_vcf $INPUT_VCF \

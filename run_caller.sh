@@ -109,7 +109,8 @@ ${threads} \
 ${output}/phase_out \
 ${output}/splited_bams \
 ${output}/splited_vcfs \
-${output}/haplotag_out > ${output}/s3.log 2>&1
+${output}/haplotag_out \
+${output} > ${output}/s3.log 2>&1
 
 bash scripts/s4_haplotype_model_feature_generation.sh \
 ${output}/pileup.vcf \
@@ -117,7 +118,8 @@ ${output}/haplotag_out \
 ${threads} \
 ${output}/haplotag_split_out \
 ${output}/edge_bins1 \
-${output}/edge_bins2 > ${output}/s4.log 2>&1
+${output}/edge_bins2 \
+${output} > ${output}/s4.log 2>&1
 
 
 bash scripts/s5_haplotype_model_predict.sh \
