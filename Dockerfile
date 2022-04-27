@@ -1,4 +1,5 @@
 FROM ubuntu:18.04
+RUN ulimit -n 20000
 RUN mkdir -p /tools/
 WORKDIR /tools/
 RUN apt-get update
