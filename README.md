@@ -24,7 +24,7 @@ For whole genome SNP calling on each chromosome including chr1-chr22,chrX,chrY,c
 Singularity:
 ```
 INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
-OUTPUT_DIR="path to output directory."  ## Absolute path
+OUTPUT_DIR="path to output directory."  ## Absolute path, make sure the output directory is existing.
 THREADS="40"  ## number of threads used for computing.
 
 singularity exec --nv --containall -B "${INPUT_DIR}":"${INPUT_DIR}","${OUTPUT_DIR}":"${OUTPUT_DIR}" \
@@ -38,7 +38,7 @@ nanosnp_v1.1-gpu.sif run_caller.sh \
 Docker:
 ```
 INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
-OUTPUT_DIR="path to output directory."  ## Absolute path
+OUTPUT_DIR="path to output directory."  ## Absolute path, make sure the output directory is existing.
 THREADS="40"  ## number of threads used for computing.
 
 docker run \
