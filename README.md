@@ -23,26 +23,25 @@ For whole genome SNP calling on each chromosome including chr1-chr22,chrX,chrY,c
 
 Singularity:
 ```
-cd NanoSNP/
-singularity exec --nv --containall -B "Directory on the host system":"Directory inside the container",`pwd`:`pwd` \
-nanosnp_v1-gpu.sif bash `pwd`/run_caller.sh \
--b "[BAM_FILE]" \
--f "[REFERENCE_FILE]" \
+singularity exec --nv --containall \
+-B "[INPUT_DIR]":"[INPUT_DIR]","[OUTPUT_DIR]":"[OUTPUT_DIR]" \
+nanosnp_v1-gpu.sif run_caller.sh \
+-b "[INPUT_DIR]/[BAM_FILE]" \   ## Input bam file are stored in the directory of [INPUT_DIR].
+-f "[INPUT_DIR]/[REFERENCE_FILE]" \    ## Input reference file are stored in the directory of [INPUT_DIR].
 -t "[THREADS]" \
 -o "[OUTPUT_DIR]"
 ```
 
 Docker:
 ```
-cd NanoSNP/
 docker run \
--v `pwd`:`pwd` \
--v  "Directory on the host system":"Directory inside the container" \
+-v "[INPUT_DIR]":"[INPUT_DIR]" \
+-v "[OUTPUT_DIR]":"[OUTPUT_DIR]" \
 --gpus all \
 huangnengcsu/nanosnp:v1-gpu \
-bash `pwd`/run_caller.sh \
--b "[BAM_FILE]" \
--f "[REFERENCE_FILE]" \
+run_caller.sh \
+-b "[INPUT_DIR]/[BAM_FILE]" \   ## Input bam file are stored in the directory of [INPUT_DIR].
+-f "[INPUT_DIR]/[REFERENCE_FILE]" \    ## Input reference file are stored in the directory of [INPUT_DIR].
 -t "[THREADS]" \
 -o "[OUTPUT_DIR]"
 ```
