@@ -84,24 +84,24 @@ mkdir -p ${output}
 
 if $USE_CONTIG
 then
-      bash scripts/s1_pileup_model_feature_generation_with_contig.sh \
+      s1_pileup_model_feature_generation_with_contig.sh \
       ${bam} \
       ${ref} \
       ${output} \
       ${threads} > ${output}/s1.log 2>&1
 else
-      bash scripts/s1_pileup_model_feature_generation.sh \
+      s1_pileup_model_feature_generation.sh \
       ${bam} \
       ${ref} \
       ${output} \
       ${threads} > ${output}/s1.log 2>&1
 fi
 
-bash scripts/s2_pileup_model_predict.sh \
+s2_pileup_model_predict.sh \
 ${output}/bin_predict_data \
 ${output}/pileup.vcf > ${output}/s2.log 2>&1
 
-bash scripts/s3_phasing_long_reads.sh \
+s3_phasing_long_reads.sh \
 ${output}/pileup.vcf \
 ${ref} \
 ${bam} \
@@ -112,7 +112,7 @@ ${output}/splited_vcfs \
 ${output}/haplotag_out \
 ${output} > ${output}/s3.log 2>&1
 
-bash scripts/s4_haplotype_model_feature_generation.sh \
+s4_haplotype_model_feature_generation.sh \
 ${output}/pileup.vcf \
 ${output}/haplotag_out \
 ${threads} \
@@ -122,12 +122,12 @@ ${output}/edge_bins2 \
 ${output} > ${output}/s4.log 2>&1
 
 
-bash scripts/s5_haplotype_model_predict.sh \
+s5_haplotype_model_predict.sh \
 ${output}/edge_bins1 \
 ${output}/edge_bins2 \
 ${output}/haplotype.csv > ${output}/s5.log 2>&1
 
-bash scripts/s6_merge_pileup_haplotype_calls.sh \
+s6_merge_pileup_haplotype_calls.sh \
 ${output}/pileup.vcf \
 ${output}/haplotype.csv \
 ${output}/merge.vcf > ${output}/s6.log 2>&1

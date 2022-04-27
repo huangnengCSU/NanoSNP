@@ -40,6 +40,8 @@ RUN mkdir -p PileupModel
 COPY PileupModel /tools/PileupModel
 RUN mkdir -p scripts
 COPY scripts /tools/scripts
+RUN chmod +x /tools/scripts/*.sh
+ENV PATH=/tools/scripts:${PATH}
 COPY run_caller.sh /tools/
 RUN chmod +x run_caller.sh
 ENV PATH=/tools/:${PATH}
