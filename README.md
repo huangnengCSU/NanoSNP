@@ -23,25 +23,30 @@ For whole genome SNP calling on each chromosome including chr1-chr22,chrX,chrY,c
 
 Singularity:
 ```
-singularity exec --nv --containall \
--B "[INPUT_DIR]":"[INPUT_DIR]","[OUTPUT_DIR]":"[OUTPUT_DIR]" \  ## Absolute path
+INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
+OUTPUT_DIR="path to output directory."  ## Absolute path
+
+singularity exec --nv --containall -B "${INPUT_DIR}":"${INPUT_DIR}","${OUTPUT_DIR}":"${OUTPUT_DIR}" \
 nanosnp_v1-gpu.sif run_caller.sh \
--b "[INPUT_DIR]/[BAM_FILE]" \   ## Input bam file are stored in the directory of [INPUT_DIR].
--f "[INPUT_DIR]/[REFERENCE_FILE]" \    ## Input reference file are stored in the directory of [INPUT_DIR].
+-b "${INPUT_DIR}/input.bam" \
+-f "${INPUT_DIR}/reference.fa" \
 -t "[THREADS]" \
--o "[OUTPUT_DIR]"
+-o "${OUTPUT_DIR}"
 ```
 
 Docker:
 ```
+INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
+OUTPUT_DIR="path to output directory."  ## Absolute path
+
 docker run \
--v "[INPUT_DIR]":"[INPUT_DIR]" \    ## Absolute path
--v "[OUTPUT_DIR]":"[OUTPUT_DIR]" \  ## Absolute path
+-v "${INPUT_DIR}":"${INPUT_DIR}" \
+-v "${OUTPUT_DIR}":"${OUTPUT_DIR}" \
 --gpus all \
 huangnengcsu/nanosnp:v1-gpu \
 run_caller.sh \
--b "[INPUT_DIR]/[BAM_FILE]" \   ## Input bam file are stored in the directory of [INPUT_DIR].
--f "[INPUT_DIR]/[REFERENCE_FILE]" \    ## Input reference file are stored in the directory of [INPUT_DIR].
+-b "${INPUT_DIR}/input.bam" \
+-f "${INPUT_DIR}/reference.fa" \
 -t "[THREADS]" \
--o "[OUTPUT_DIR]"
+-o "${OUTPUT_DIR}"
 ```
