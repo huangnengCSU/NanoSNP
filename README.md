@@ -24,7 +24,7 @@ For whole genome SNP calling on each chromosome including chr1-chr22,chrX,chrY,c
 Singularity:
 ```
 singularity exec --nv --containall \
--B "[INPUT_DIR]":"[INPUT_DIR]","[OUTPUT_DIR]":"[OUTPUT_DIR]" \
+-B "[INPUT_DIR]":"[INPUT_DIR]","[OUTPUT_DIR]":"[OUTPUT_DIR]" \  ## Absolute path
 nanosnp_v1-gpu.sif run_caller.sh \
 -b "[INPUT_DIR]/[BAM_FILE]" \   ## Input bam file are stored in the directory of [INPUT_DIR].
 -f "[INPUT_DIR]/[REFERENCE_FILE]" \    ## Input reference file are stored in the directory of [INPUT_DIR].
@@ -35,8 +35,8 @@ nanosnp_v1-gpu.sif run_caller.sh \
 Docker:
 ```
 docker run \
--v "[INPUT_DIR]":"[INPUT_DIR]" \
--v "[OUTPUT_DIR]":"[OUTPUT_DIR]" \
+-v "[INPUT_DIR]":"[INPUT_DIR]" \    ## Absolute path
+-v "[OUTPUT_DIR]":"[OUTPUT_DIR]" \  ## Absolute path
 --gpus all \
 huangnengcsu/nanosnp:v1-gpu \
 run_caller.sh \
