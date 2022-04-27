@@ -25,12 +25,13 @@ Singularity:
 ```
 INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
 OUTPUT_DIR="path to output directory."  ## Absolute path
+THREADS="40"  ## number of threads used for computing.
 
 singularity exec --nv --containall -B "${INPUT_DIR}":"${INPUT_DIR}","${OUTPUT_DIR}":"${OUTPUT_DIR}" \
 nanosnp_v1-gpu.sif run_caller.sh \
 -b "${INPUT_DIR}/input.bam" \
 -f "${INPUT_DIR}/reference.fa" \
--t "[THREADS]" \
+-t "${THREADS}" \
 -o "${OUTPUT_DIR}"
 ```
 
@@ -38,6 +39,7 @@ Docker:
 ```
 INPUT_DIR="path to input directory, which store the input bam and reference genome."    ## Absolute path
 OUTPUT_DIR="path to output directory."  ## Absolute path
+THREADS="40"  ## number of threads used for computing.
 
 docker run \
 -v "${INPUT_DIR}":"${INPUT_DIR}" \
@@ -47,6 +49,6 @@ huangnengcsu/nanosnp:v1-gpu \
 run_caller.sh \
 -b "${INPUT_DIR}/input.bam" \
 -f "${INPUT_DIR}/reference.fa" \
--t "[THREADS]" \
+-t "${THREADS}" \
 -o "${OUTPUT_DIR}"
 ```
