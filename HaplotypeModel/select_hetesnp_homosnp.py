@@ -106,12 +106,12 @@ def select_snp(vcf_file, quality_threshold, adjacent_size, support_quality=15):
                     num_groups += 1
                 else:
                     continue
-    print('total groups:', num_groups)
-    for contig in contigs_order_list:
-        print("contig:%s\tsuccess cnt:%d\tfailed cnt:%d\tratio=%f\n" % (
-            contig, success_failed_cnt_dict[contig][0], success_failed_cnt_dict[contig][1],
-            success_failed_cnt_dict[contig][1] / (
-                        success_failed_cnt_dict[contig][0] + success_failed_cnt_dict[contig][1]+1e-9)))
+    # print('total groups:', num_groups)
+    # for contig in contigs_order_list:
+    #     print("contig:%s\tsuccess cnt:%d\tfailed cnt:%d\tratio=%f\n" % (
+    #         contig, success_failed_cnt_dict[contig][0], success_failed_cnt_dict[contig][1],
+    #         success_failed_cnt_dict[contig][1] / (
+    #                     success_failed_cnt_dict[contig][0] + success_failed_cnt_dict[contig][1]+1e-9)))
     return groups_dict
 
 
