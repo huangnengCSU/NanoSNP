@@ -44,7 +44,7 @@ time parallel --joblog ${OUTPUT_DIR}/make_edge_matrix.log -j2 \
 "python ${command_path}/make_predict_groups.py \
 --bam merged_TAG_{1}.bam \
 --pileup_vcf $INPUT_VCF \
---output edge_bins{1} \
+--output ${OUTPUT_DIR}/edge_bins{1} \
 --min_quality 19 \
 --support_quality 14 \
 -t ${THREADS} \
