@@ -34,15 +34,15 @@ time parallel -j$THREADS \
 "samtools index $HAPLOTAG_SPLIT_BAMS/{1}_TAG_1.bam && samtools index $HAPLOTAG_SPLIT_BAMS/{1}_TAG_2.bam" ::: ${CHR[@]}
 
 A=(1 2)
-time parallel -j2 "samtools merge -@ 10 merged_TAG_{1}.bam $HAPLOTAG_SPLIT_BAMS/*_TAG_{1}.bam" ::: ${A[@]}
+time parallel -j2 "samtools merge -@ 10 ${OUTPUT_DIR}/merged_TAG_{1}.bam $HAPLOTAG_SPLIT_BAMS/*_TAG_{1}.bam" ::: ${A[@]}
 
-time parallel -j2 "samtools index -@ 10 merged_TAG_{1}.bam" ::: ${A[@]}
+time parallel -j2 "samtools index -@ 10 ${OUTPUT_DIR}/merged_TAG_{1}.bam" ::: ${A[@]}
 
 command_path=$(cd ${script_dir}/../HaplotypeModel/;pwd)
 
 time parallel --joblog ${OUTPUT_DIR}/make_edge_matrix.log -j2 \
 "python ${command_path}/make_predict_groups.py \
---bam merged_TAG_{1}.bam \
+--bam ${OUTPUT_DIR}/merged_TAG_{1}.bam \
 --pileup_vcf $INPUT_VCF \
 --output ${OUTPUT_DIR}/edge_bins{1} \
 --min_quality 19 \
