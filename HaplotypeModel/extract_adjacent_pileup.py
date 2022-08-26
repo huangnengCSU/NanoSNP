@@ -95,6 +95,7 @@ def extract_pileups_batch(samfile, groups, max_coverage):
     cand_group_pos, cand_read_matrix, cand_baseq_matrix, cand_mapq_matrix = [], [], [], []
     cand_surrounding_read_matrix, cand_surrounding_baseq_matrix, cand_surrounding_mapq_matrix = [], [], []
     max_depth = 0
+    max_surrounding_depth = 0
     depth = []
     surrounding_depth = []
     positions = []
