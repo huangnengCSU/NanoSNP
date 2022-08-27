@@ -107,7 +107,7 @@ def multigroups_pileup_haplotype_feature(bam, groups, max_coverage, adjacent_siz
     for sub_sub_groups in sub_groups:
         candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth, pileup_sequences, pileup_baseq, \
         pileup_mapq, pileup_hap, pileup_depth = single_group_pileup_haplotype_feature(samfile, sub_sub_groups, max_coverage, adjacent_size, pileup_flanking_size)
-        if all(rtv is not None for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_depth, pileup_sequences, pileup_baseq, pileup_mapq, pileup_depth, haplotype_hap, pileup_hap]):
+        if all( len(rtv)>0 for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap]):
             out_candidate_positions.extend(candidate_positions)
             out_haplotype_positions.extend(haplotype_positions)
             out_haplotype_sequences.extend(haplotype_sequences)
