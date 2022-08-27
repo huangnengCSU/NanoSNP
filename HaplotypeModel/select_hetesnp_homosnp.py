@@ -158,19 +158,22 @@ def select_snp_multiprocess(vcf_file, quality_threshold, adjacent_size, support_
         print("[INFO] Total number of contigs : {0}".format(len(contigs_order_list)))
         step = math.ceil(len(contigs_order_list) / nthreads)
         divided_contigs = [contigs_order_list[dt:dt + step] for dt in range(0, len(contigs_order_list), step)]
+        divided_contigs = [v for v in divided_contigs if len(v) > 0]
         assert len(divided_contigs) <= nthreads
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
             futures = [executor.submit(find_adjacent_sites, contig_dict, contigs, adjacent_size, quality_threshold, support_quality) for contigs in divided_contigs]
             for fut in concurrent.futures.as_completed(futures):
-                for fut in concurrent.futures.as_completed(futures):
-                    if fut.exception() is None:
-                        adjacent_groups = fut.result()
+                if fut.exception() is None:
+                    adjacent_groups = fut.result()
+                    if adjacent_groups is not None:
                         for ctg in adjacent_groups.keys():
                             groups_dict[ctg] = adjacent_groups[ctg]
                     else:
-                        sys.stderr.write("[" + str(datetime.now().strftime('%m-%d-%Y %H:%M:%S')) + "]  ERROR: " + str(fut.exception()) + "\n")
-                    fut._result = None
+                        print("find_adjacent_sites return None object")
+                else:
+                    sys.stderr.write("[" + str(datetime.now().strftime('%m-%d-%Y %H:%M:%S')) + "]  ERROR: " + str(fut.exception()) + "\n")
+                fut._result = None
         return groups_dict
         
 
