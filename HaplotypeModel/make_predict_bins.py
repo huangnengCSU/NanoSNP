@@ -145,9 +145,11 @@ def Run(args):
         total_threads = args.threads
         step = math.ceil(len(chromosome_groups) / total_threads)
         divided_groups = [chromosome_groups[dt:dt + step] for dt in range(0, len(chromosome_groups), step)]  # divided for multiple threads
+        samfile = args.bams + '/' + k + '.bam'
+        assert os.path.exists(samfile)
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=total_threads) as executor:
-            signals = [executor.submit(multigroups_pileup_haplotype_feature, args.bam, groups, args.max_coverage, adjacent_size, pileup_flanking_size) for groups in divided_groups]
+            signals = [executor.submit(multigroups_pileup_haplotype_feature, samfile, groups, args.max_coverage, adjacent_size, pileup_flanking_size) for groups in divided_groups]
             for sig in concurrent.futures.as_completed(signals):
                 if sig.exception() is None:
                     # get the results
@@ -239,8 +241,8 @@ def main():
     parser = ArgumentParser(description="Create pileup and haplotype feature of candidate SNPs for predicting")
     parser.add_argument("--pileup_vcf", type=str, required=True,
                         help="Input the variants called by pileup model, required.")
-    parser.add_argument("--bam", type=str, required=True,
-                        help="Input the bam file, required.")
+    parser.add_argument("--bams", type=str, required=True,
+                        help="Directory to phased bams, required.")
     parser.add_argument("--reference", type=str, required=True,
                         help="Input the reference file, required.")
     parser.add_argument("--output", type=str, required=True,
