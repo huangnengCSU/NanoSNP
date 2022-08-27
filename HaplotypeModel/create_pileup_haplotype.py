@@ -115,7 +115,7 @@ def single_group_pileup_haplotype_feature(samfile, groups, max_coverage, adjacen
                     mq_row = mapping_quality_mat[qname]
                 else:
                     row = SNP_mat[qname]
-                    hap = hap_mat[qname]
+                    hp = hap_mat[qname]
                     bq_row = base_quality_mat[qname]
                     mq_row = mapping_quality_mat[qname]
                 if not pileupread.is_del and not pileupread.is_refskip:
