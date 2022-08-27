@@ -168,8 +168,8 @@ def Run(args):
                     # get the results
                     [candidate_positions, candidate_labels, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth,
                      pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth] = sig.result()
-                    if all( len(rtv)>0 for rtv in [candidate_positions, candidate_labels, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth,
-                     pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth]):
+                    if all( len(rtv)>0 for rtv in [candidate_positions, candidate_labels, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap,
+                     pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap]):
                         out_candidate_positions.extend(candidate_positions)
                         out_candidate_labels.extend(candidate_labels)
                         out_haplotype_positions.extend(haplotype_positions)
