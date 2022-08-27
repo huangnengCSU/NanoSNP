@@ -1,3 +1,4 @@
+from ast import arg
 import os
 import sys
 import time
@@ -10,7 +11,7 @@ import concurrent.futures
 from tqdm import tqdm
 from argparse import ArgumentParser
 # from extract_adjacent_pileup import extract_pileups, extract_pileups_batch
-from select_hetesnp_homosnp import select_snp
+from select_hetesnp_homosnp import select_snp, select_snp_multiprocess
 from create_pileup_haplotype import single_group_pileup_haplotype_feature
 
 
@@ -132,7 +133,7 @@ def Run(args):
     pileup_flanking_size = args.pileup_flanking_size
     hete_support_quality = args.hete_support_quality
 
-    groups_dict = select_snp(vcf_file=pileup_vcf, quality_threshold=low_quality_threshold, adjacent_size=adjacent_size, support_quality=hete_support_quality)
+    groups_dict = select_snp_multiprocess(vcf_file=pileup_vcf, quality_threshold=low_quality_threshold, adjacent_size=adjacent_size, support_quality=hete_support_quality, nthreads=args.threads)
     # 把groups先按照染色体进行划分
     for k in groups_dict.keys():
         ## k is contig name
@@ -155,8 +156,7 @@ def Run(args):
                     # get the results
                     [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth,
                      pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth] = sig.result()
-                    if all( len(rtv)>0 for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth,
-                     pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth]):
+                    if all( len(rtv)>0 for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap]):
                         out_candidate_positions.extend(candidate_positions)
                         out_haplotype_positions.extend(haplotype_positions)
                         out_haplotype_sequences.extend(haplotype_sequences)
