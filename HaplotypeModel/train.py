@@ -215,11 +215,11 @@ def main():
     logger.info('Save config info.')
 
     num_workers = config.training.num_gpu * 2
-    train_dataset = TrainDatasetPreLoad(data_dir1=config.data.train1, data_dir2=config.data.train2)
+    train_dataset = TrainDatasetPreLoad(data_dir1=config.data.train1, data_dir2=config.data.train2, min_depth=2)
     training_data = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4)
     logger.info('Load Train Set!')
 
-    dev_dataset = TrainDatasetPreLoad(data_dir1=config.data.dev1, data_dir2=config.data.dev2)
+    dev_dataset = TrainDatasetPreLoad(data_dir1=config.data.dev1, data_dir2=config.data.dev2, min_depth=2)
     validate_data = torch.utils.data.DataLoader(dev_dataset, batch_size=1, shuffle=False, num_workers=4)
     logger.info('Load Dev Set!')
 
