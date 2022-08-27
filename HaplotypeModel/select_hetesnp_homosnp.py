@@ -1,5 +1,10 @@
 import argparse
 from collections import defaultdict
+import concurrent.futures
+import math
+import sys
+from datetime import datetime
+
 
 major_contigs_order = ["chr" + str(a) for a in list(range(1, 23)) + ["X", "Y"]] + [
     str(a) for a in list(range(1, 23)) + ["X", "Y"]]
@@ -113,6 +118,113 @@ def select_snp(vcf_file, quality_threshold, adjacent_size, support_quality=15):
     #         success_failed_cnt_dict[contig][1] / (
     #                     success_failed_cnt_dict[contig][0] + success_failed_cnt_dict[contig][1]+1e-9)))
     return groups_dict
+
+def select_snp_multiprocess(vcf_file, quality_threshold, adjacent_size, support_quality=15, nthreads=10):
+    # 候选位点的质量低于quality_threshold, 用于构造group的杂合位点只要质量超过support_quality才行
+    header = []
+    groups_dict = {}
+    contig_dict = defaultdict(defaultdict)
+    row_count = 0
+    no_vcf_output = True
+    with open(vcf_file, 'r') as fin:
+        for row in fin:
+            row_count += 1
+            if row[0] == '#':
+                if row not in header:
+                    header.append(row)
+                continue
+            columns = row.strip().split()
+            ctg_name = columns[0]
+            pos = int(columns[1])
+            ref_base = columns[3]
+            alt_base = columns[4]
+            quality = float(columns[5])
+            genotype = columns[9].split(':')[0].replace(
+                '|', '/')  # 0/0, 1/1, 0/1
+
+            # 保留杂合位点和低质量的纯合位点
+            if (genotype == '0/0' and quality >= quality_threshold) or (
+                    genotype == '1/1' and quality >= quality_threshold):
+                continue
+
+            contig_dict[ctg_name][pos] = (genotype, quality)  # GT, Q
+            no_vcf_output = False
+        if row_count == 0:
+            print("[WARNING] No vcf file found, please check the setting")
+        if no_vcf_output:
+            print("[WARNING] No variant found, please check the setting")
+        contigs_order = major_contigs_order + list(contig_dict.keys())
+        contigs_order_list = sorted(contig_dict.keys(), key=lambda x: contigs_order.index(x))
+        print("[INFO] Total number of contigs : {0}".format(len(contigs_order_list)))
+        step = math.ceil(len(contigs_order_list) / nthreads)
+        divided_contigs = [contigs_order_list[dt:dt + step] for dt in range(0, len(contigs_order_list), step)]
+        assert len(divided_contigs) <= nthreads
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
+            futures = [executor.submit(find_adjacent_sites, contig_dict, contigs, adjacent_size, quality_threshold, support_quality) for contigs in divided_contigs]
+            for fut in concurrent.futures.as_completed(futures):
+                for fut in concurrent.futures.as_completed(futures):
+                    if fut.exception() is None:
+                        adjacent_groups = fut.result()
+                        for ctg in adjacent_groups.keys():
+                            groups_dict[ctg] = adjacent_groups[ctg]
+                    else:
+                        sys.stderr.write("[" + str(datetime.now().strftime('%m-%d-%Y %H:%M:%S')) + "]  ERROR: " + str(fut.exception()) + "\n")
+                    fut._result = None
+        return groups_dict
+        
+
+def find_adjacent_sites(contig_dict, contig_list, adjacent_size, quality_threshold, support_quality):
+    adjacent_groups = {}
+    for contig in contig_list:
+        print("[INFO] Processing contig {0}".format(contig))
+        success_cnt, fail_cnt = 0, 0
+        ctg_groups = []
+        all_pos = sorted(contig_dict[contig].keys())
+        for pos_i in range(len(all_pos)):
+            pos = all_pos[pos_i]
+            if contig_dict[contig][pos][1] < quality_threshold:
+                adjacent_pos = []
+                left_adjacent_pos, right_adjacent_pos = [], []
+                l_count, r_count = adjacent_size, adjacent_size
+                pos_il = pos_i - 1
+                pos_ir = pos_i + 1
+                while pos_il >= 0:
+                    if contig_dict[contig][all_pos[pos_il]][1] >= support_quality and \
+                            contig_dict[contig][all_pos[pos_il]][0] == '0/1':
+                        left_adjacent_pos.append(all_pos[pos_il])
+                        l_count -= 1
+                    if l_count <= 0:
+                        break
+                    pos_il -= 1
+                left_adjacent_pos = left_adjacent_pos[::-1]
+                if len(left_adjacent_pos) != adjacent_size:
+                    fail_cnt+=1
+                    continue
+                while pos_ir < len(all_pos):
+                    if contig_dict[contig][all_pos[pos_ir]][1] >= support_quality and \
+                            contig_dict[contig][all_pos[pos_ir]][0] == '0/1':
+                        right_adjacent_pos.append(all_pos[pos_ir])
+                        r_count -= 1
+                    if r_count <= 0:
+                        break
+                    pos_ir += 1
+                if len(right_adjacent_pos) != adjacent_size:
+                    fail_cnt+=1
+                    continue
+                adjacent_pos = left_adjacent_pos + [pos] + right_adjacent_pos
+                queue = []
+                assert len(adjacent_pos) == adjacent_size * 2 + 1
+                for p in adjacent_pos:
+                    dict_item = contig_dict[contig][p]
+                    queue.append(SNPItem(contig, p, dict_item[0], dict_item[1]))
+                ctg_groups.append(queue)
+                success_cnt += 1
+            else:
+                continue
+    adjacent_groups[contig] = ctg_groups
+    print("[INFO] {0} Success {1} and failed {2}".format(contig, success_cnt, fail_cnt))
+    return adjacent_groups
 
 
 def main():
