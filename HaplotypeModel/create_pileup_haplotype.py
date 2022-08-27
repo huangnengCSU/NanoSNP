@@ -58,6 +58,8 @@ def single_group_pileup_haplotype_feature(samfile, groups, max_coverage, adjacen
             if not failed:
                 new_groups.append(g)
         groups = new_groups
+    
+    ## TODO: 由于覆盖度过高的位点，直接被过滤掉，真实突变位点会变成FN，如何把这部分位点进行召回？
 
     # TODO: 实际数据中，会存在过滤后的group为空的情况，如何处理？
     if len(groups) == 0:
