@@ -12,10 +12,8 @@ class PileupFeature():
         self.pileup_baseq = table_file.root.pileup_baseq
         self.pileup_mapq = table_file.root.pileup_mapq
         self.candidate_positions = table_file.root.candidate_positions
-    
     def get_all_items(self):
         return self.pileup_sequences, self.pileup_hap, self.pileup_baseq, self.pileup_mapq
-    
     def get_feature_tensor(self):
         sequences = self.pileup_sequences
         baseq = self.pileup_baseq
@@ -31,11 +29,9 @@ class HaplotypeFeature():
         self.haplotype_baseq = table_file.root.haplotype_baseq
         self.haplotype_mapq = table_file.root.haplotype_mapq
         self.candidate_positions = table_file.root.candidate_positions
-        self.haplotype_positions = table_file.root.haplotype_positions
-    
+        self.haplotype_positions = table_file.root.haplotype_positions 
     def get_all_items(self):
         return self.haplotype_sequences, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq
-    
     def get_feature_tensor(self):
         sequences = self.haplotype_sequences
         baseq = self.haplotype_baseq
@@ -55,10 +51,8 @@ class LabelField():
         self.cf = table_file.root.candidate_labels[:,0]
         self.gt = table_file.root.candidate_labels[:,1]
         self.zy = table_file.root.candidate_labels[:,2]
-
     def get_refcall_idx(self):
         return np.where((self.cf == 1) & (self.zy == -1))[0]
-    
     def get_variant_idx(self):
         return np.where((self.cf == 1) & (self.zy > 0))[0]
         
@@ -74,7 +68,6 @@ class TrainingDataset(Dataset):
         label_field = LabelField(bin_file)
         ref_calls = label_field.get_refcall_idx()
         variant_calls = label_field.get_variant_idx()
-
         ### refcall和variant按照pn_value的比例进行混合，pn_value越大，则variant越多
         ### 以refcall为遍历的基础，每次从variant中随机采样pn_value*len(refcall)个variant进行混合
         training_sample_indexes = []
@@ -87,12 +80,14 @@ class TrainingDataset(Dataset):
                 tmp_merge_calls = np.concatenate((tmp_ref_calls, tmp_variant_calls))
                 np.random.shuffle(tmp_merge_calls)
                 training_sample_indexes = np.concatenate((training_sample_indexes, tmp_merge_calls))
+                i += block_size
             else:
                 tmp_ref_calls = ref_calls[i:]
                 tmp_variant_calls = np.random.choice(variant_calls, size = int(len(tmp_ref_calls)*pn_value), replace=True)
                 tmp_merge_calls = np.concatenate((tmp_ref_calls, tmp_variant_calls))
                 np.random.shuffle(tmp_merge_calls)
                 training_sample_indexes = np.concatenate((training_sample_indexes, tmp_merge_calls))
+                i += len(tmp_ref_calls)
         self.training_sample_indexes = training_sample_indexes
         print("INFO: creating pileup feature array")
         self.pileup_feature_array = pileup_feature.get_feature_tensor()
@@ -100,12 +95,10 @@ class TrainingDataset(Dataset):
         self.haplotype_feature_array = haplotype_feature.get_feature_tensor()
         self.gt = label_field.gt
         self.zy = label_field.zy
-    
     def __len__(self):
         return len(self.training_sample_indexes)
-    
     def __getitem__(self, idx):
-        i = self.training_sample_indexes[idx]
+        i = int(self.training_sample_indexes[idx])
         return self.pileup_feature_array[i], self.haplotype_feature_array[i], self.gt[i], self.zy[i]
 
 class TestDataset(Dataset):
@@ -118,10 +111,7 @@ class TestDataset(Dataset):
         haplotype_feature = HaplotypeFeature(bin_file)
         self.pileup_feature_array = pileup_feature.get_feature_tensor()
         self.haplotype_feature_array = haplotype_feature.get_feature_tensor()
-    
     def __len__(self):
         return self.pileup_feature_array.shape[0]
-    
     def __getitem__(self, idx):
         return self.pileup_feature_array[idx], self.haplotype_feature_array[idx]
-
