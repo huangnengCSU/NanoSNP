@@ -1,0 +1,32 @@
+configname: dev
+data:
+  train: "/public/home/hpc164611151/projects/Bioinformatics_NanoSNP_review/Haplotype_training_dataset/300/test_new_make_bins/nanosnp_bins2/train"
+  eval: "/public/home/hpc164611151/projects/Bioinformatics_NanoSNP_review/Haplotype_training_dataset/300/test_new_make_bins/nanosnp_bins2/eval"
+model:
+  pileup_dim: 4
+  haplotype_dim: 4
+  hidden_size: 128
+  gt_num_class: 10
+  zy_num_class: 3
+training:
+  batch_size: 512
+  load_model: False
+  load_encoder: False
+  load_forward_layer: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2021
+  num_gpu: 1
+  epochs: 400
+  max_grad_norm: 2
+  visualization: True
+  show_interval: 100
+  save_model: dev
+optim:
+  type: Ranger
+  lr: 0.00001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0
+  begin_to_adjust_lr: 10
