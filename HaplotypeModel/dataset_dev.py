@@ -52,9 +52,9 @@ class LabelField():
         self.gt = table_file.root.candidate_labels[:,1]
         self.zy = table_file.root.candidate_labels[:,2]
     def get_refcall_idx(self):
-        return np.where((self.cf == 1) & (self.zy == -1))[0]
+        return np.where((self.cf == 1) & (self.zy == -1) & (self.gt < 10))[0]
     def get_variant_idx(self):
-        return np.where((self.cf == 1) & (self.zy > 0))[0]
+        return np.where((self.cf == 1) & (self.zy > 0) & (self.gt < 10))[0]
         
 
 class TrainingDataset(Dataset):
