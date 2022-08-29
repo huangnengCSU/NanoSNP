@@ -6,12 +6,20 @@ import numpy as np
 import pandas as pd
 
 class PileupFeature():
-    def __init__(self, table_file):
-        self.pileup_sequences = table_file.root.pileup_sequences    # [N, depth, 33]
-        self.pileup_hap = table_file.root.pileup_hap
-        self.pileup_baseq = table_file.root.pileup_baseq
-        self.pileup_mapq = table_file.root.pileup_mapq
-        self.candidate_positions = table_file.root.candidate_positions
+    def __init__(self, table_file, valid_idx = None):
+        if valid_idx is not None:
+            print(valid_idx.shape)
+            self.pileup_sequences = table_file.root.pileup_sequences[valid_idx,:,:]    # [N, depth, 33]
+            self.pileup_hap = table_file.root.pileup_hap[valid_idx,:,:]
+            self.pileup_baseq = table_file.root.pileup_baseq[valid_idx,:,:]
+            self.pileup_mapq = table_file.root.pileup_mapq[valid_idx,:,:]
+            self.candidate_positions = table_file.root.candidate_positions[valid_idx,:]
+        else:
+            self.pileup_sequences = table_file.root.pileup_sequences    # [N, depth, 33]
+            self.pileup_hap = table_file.root.pileup_hap
+            self.pileup_baseq = table_file.root.pileup_baseq
+            self.pileup_mapq = table_file.root.pileup_mapq
+            self.candidate_positions = table_file.root.candidate_positions
     def get_all_items(self):
         return self.pileup_sequences, self.pileup_hap, self.pileup_baseq, self.pileup_mapq
     def get_feature_tensor(self):
@@ -23,13 +31,21 @@ class PileupFeature():
         return array
 
 class HaplotypeFeature():
-    def __init__(self, table_file):
-        self.haplotype_sequences = table_file.root.haplotype_sequences
-        self.haplotype_hap = table_file.root.haplotype_hap
-        self.haplotype_baseq = table_file.root.haplotype_baseq
-        self.haplotype_mapq = table_file.root.haplotype_mapq
-        self.candidate_positions = table_file.root.candidate_positions
-        self.haplotype_positions = table_file.root.haplotype_positions 
+    def __init__(self, table_file, valid_idx = None):
+        if valid_idx is not None:
+            self.haplotype_sequences = table_file.root.haplotype_sequences[valid_idx,:,:]
+            self.haplotype_hap = table_file.root.haplotype_hap[valid_idx,:,:]
+            self.haplotype_baseq = table_file.root.haplotype_baseq[valid_idx,:,:]
+            self.haplotype_mapq = table_file.root.haplotype_mapq[valid_idx,:,:]
+            self.candidate_positions = table_file.root.candidate_positions[valid_idx,:]
+            self.haplotype_positions = table_file.root.haplotype_positions[valid_idx,:]
+        else:
+            self.haplotype_sequences = table_file.root.haplotype_sequences
+            self.haplotype_hap = table_file.root.haplotype_hap
+            self.haplotype_baseq = table_file.root.haplotype_baseq
+            self.haplotype_mapq = table_file.root.haplotype_mapq
+            self.candidate_positions = table_file.root.candidate_positions
+            self.haplotype_positions = table_file.root.haplotype_positions
     def get_all_items(self):
         return self.haplotype_sequences, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq
     def get_feature_tensor(self):
@@ -48,9 +64,15 @@ class LabelField():
         non_variant site: cf == 1 & zy == -1
         variant site: cf == 1 & zy > 0
         """
-        self.cf = table_file.root.candidate_labels[:,0]
-        self.gt = table_file.root.candidate_labels[:,1]
-        self.zy = table_file.root.candidate_labels[:,2]
+        
+        cf = table_file.root.candidate_labels[:,0]
+        gt = table_file.root.candidate_labels[:,1]
+        zy = table_file.root.candidate_labels[:,2]
+        self.valid_idx = np.where((cf == 1) & (zy >=-1) & (zy < 10))[0]
+        self.cf = cf[self.valid_idx]
+        self.gt = gt[self.valid_idx]
+        self.zy = zy[self.valid_idx]
+
     def get_refcall_idx(self):
         return np.where((self.cf == 1) & (self.zy == -1) & (self.gt < 10))[0]
     def get_variant_idx(self):
@@ -63,11 +85,11 @@ class TrainingDataset(Dataset):
         pn_vlaue:  the number of variant sites (P) deivided by the number of refcall sites (N)
         """
         bin_file = tables.open_file(bin_path, mode='r')
-        pileup_feature = PileupFeature(bin_file)
-        haplotype_feature = HaplotypeFeature(bin_file)
         label_field = LabelField(bin_file)
         ref_calls = label_field.get_refcall_idx()
         variant_calls = label_field.get_variant_idx()
+        pileup_feature = PileupFeature(bin_file, label_field.valid_idx)
+        haplotype_feature = HaplotypeFeature(bin_file, label_field.valid_idx)
         ### refcall和variant按照pn_value的比例进行混合，pn_value越大，则variant越多
         ### 以refcall为遍历的基础，每次从variant中随机采样pn_value*len(refcall)个variant进行混合
         training_sample_indexes = []
