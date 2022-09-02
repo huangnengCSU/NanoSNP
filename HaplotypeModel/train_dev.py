@@ -9,8 +9,8 @@ import torch.nn as nn
 import torch.utils.data
 import math
 import numpy as np
-from model_dev import CatModel, weights_init
-from dataset_dev import TrainingDataset
+from model_dev import CatModel, weights_init, LSTMNetwork
+from dataset_dev import TrainingDataset,EvaluateDataset
 from optim import Optimizer
 from utils import AttrDict, init_logger, count_parameters, save_model
 from tensorboardX import SummaryWriter
@@ -32,12 +32,12 @@ def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size
 
     for bin_file in os.listdir(training_data):
         train_dataset = TrainingDataset(bin_path = training_data+'/'+bin_file, pn_value=1.0)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=config.training.num_gpu * 2)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=config.training.num_gpu * 3)
 
         for step, (pileup_feat, haplotype_feat, gt, zy) in enumerate(train_loader):
             """
-            pileup_feat: [N, depth, 33, 4]
-            haplotype_feat: [N, depth, 11, 4]
+            pileup_feat: [N, 104, 33]
+            haplotype_feat: [N, 104, 11]
             gt: [N,]
             zy: [N,]
             """
@@ -45,19 +45,18 @@ def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size
             x_haplotype = haplotype_feat.type(torch.FloatTensor)
             gt_label = gt.type(torch.LongTensor)
             zy_label = zy.type(torch.LongTensor)
-            if x_pileup.shape[0] == 0 or x_pileup.shape[1] == 0 or x_pileup.ndim != 4:
+            if x_pileup.shape[0] == 0 or x_pileup.shape[1] == 0 or x_pileup.ndim != 3:
                 continue
             if config.training.num_gpu > 0:
                 x_pileup = x_pileup.cuda()
                 x_haplotype = x_haplotype.cuda()
                 gt_label = gt_label.cuda()
                 zy_label = zy_label.cuda()
-                loss, gt_out = model(x_pileup, x_haplotype, gt_label)
+                loss,_,_ = model(x_pileup, x_haplotype, gt_label, zy_label)
                 loss.backward()
                 total_loss += loss.item()
-                # grad_norm = nn.utils.clip_grad_norm_(
-                #     model.parameters(), config.training.max_grad_norm)
-                grad_norm = 0
+                grad_norm = nn.utils.clip_grad_norm_(model.parameters(), config.training.max_grad_norm)
+                # grad_norm = 0
                 optimizer.step()
                 total_images += x_pileup.shape[0]
             avg_loss = (total_loss / total_images) if total_images else 0
@@ -87,12 +86,12 @@ def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=N
     total_acc = 0
     total_cnt = 0
     for bin_file in os.listdir(validating_data):
-        validate_dataset = TrainingDataset(bin_path = validating_data+'/'+bin_file, pn_value=1.0)
-        validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size, shuffle=False, num_workers=config.training.num_gpu * 2)
+        validate_dataset = EvaluateDataset(bin_path = validating_data+'/'+bin_file)
+        validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size, shuffle=False, num_workers=config.training.num_gpu * 3)
         for step, (pileup_feat, haplotype_feat, gt, zy) in enumerate(validate_loader):
             """
-            pileup_feat: [N, depth, 33, 4]
-            haplotype_feat: [N, depth, 11, 4]
+            pileup_feat: [N, 104, 33]
+            haplotype_feat: [N, 104, 11]
             gt: [N,]
             zy: [N,]
             """
@@ -100,14 +99,14 @@ def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=N
             x_haplotype = haplotype_feat.type(torch.FloatTensor)
             gt_label = gt.type(torch.LongTensor)
             zy_label = zy.type(torch.LongTensor)
-            if x_pileup.shape[0] == 0 or x_pileup.shape[1] == 0 or x_pileup.ndim != 4:
+            if x_pileup.shape[0] == 0 or x_pileup.shape[1] == 0 or x_pileup.ndim != 3:
                 continue
             if config.training.num_gpu > 0:
                 x_pileup = x_pileup.cuda()
                 x_haplotype = x_haplotype.cuda()
                 gt_label = gt_label.cuda()
                 zy_label = zy_label.cuda()
-                loss, gt_out = model(x_pileup, x_haplotype, gt_label)
+                loss, gt_out, zy_out = model(x_pileup, x_haplotype, gt_label, zy_label)
                 gt_logits = torch.softmax(gt_out, 1).detach().cpu().numpy()
                 gt_output = np.argmax(gt_logits, axis=1)
                 # print('pred:',gt_output[:50].tolist())
@@ -210,14 +209,19 @@ def main():
     for bin_file in os.listdir(config.data.train):
         train_dataset = TrainingDataset(bin_path = config.data.train+'/'+bin_file,pn_value=1.0)
         num_batches_per_epoch += math.ceil(train_dataset.__len__()/config.training.batch_size)
+    print("batch_size:",config.training.batch_size)
+    print("num_batches_per_epoch:",num_batches_per_epoch)
+    print("num_epochs:",config.training.epochs)
 
     if opt.mode == 'retrain':
-        model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
+        #model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
+        model = LSTMNetwork(gt_class=config.model.gt_num_class, zy_class=config.model.zy_num_class).cuda()
         model.apply(weights_init)
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch)
         logger.info('Created a %s optimizer.' % config.optim.type)
     elif opt.mode == 'finetune':
-        model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
+        #model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
+        model = LSTMNetwork(gt_class=config.model.gt_num_class, zy_class=config.model.zy_num_class).cuda()
         model.load_state_dict(torch.load(opt.model_path))
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch, finetune=True)
         logger.info('Created a %s optimizer.' % config.optim.type)
