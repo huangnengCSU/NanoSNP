@@ -6,6 +6,87 @@ import numpy as np
 import pandas as pd
 import time
 
+def get_base_freq(sequence):
+    A_cnt = np.sum(sequence==1,axis=0)
+    C_cnt = np.sum(sequence==2,axis=0)
+    G_cnt = np.sum(sequence==3,axis=0)
+    T_cnt = np.sum(sequence==4,axis=0)
+    D_cnt = np.sum(sequence==-1,axis=0)
+    total_cnt = A_cnt + C_cnt+G_cnt+T_cnt+D_cnt+1e-6
+    A_freq = A_cnt/total_cnt
+    C_freq = C_cnt/total_cnt
+    G_freq = G_cnt/total_cnt
+    T_freq = T_cnt/total_cnt
+    D_freq = D_cnt/total_cnt
+    return A_freq, C_freq, G_freq, T_freq, D_freq, A_cnt, C_cnt, G_cnt, T_cnt, D_cnt
+
+def get_base_quality(sequence,baseq):
+    A_bq = np.sum(baseq*(sequence==1),axis=0)
+    C_bq = np.sum(baseq*(sequence==2),axis=0)
+    G_bq = np.sum(baseq*(sequence==3),axis=0)
+    T_bq = np.sum(baseq*(sequence==4),axis=0)
+    A_bq_mean = np.mean(baseq*(sequence==1),axis=0)
+    C_bq_mean = np.mean(baseq*(sequence==1),axis=0)
+    G_bq_mean = np.mean(baseq*(sequence==1),axis=0)
+    T_bq_mean = np.mean(baseq*(sequence==1),axis=0)
+    return A_bq, C_bq, G_bq, T_bq, A_bq_mean, C_bq_mean, G_bq_mean, T_bq_mean
+
+def get_mapping_quality(sequence,mapq):
+    A_mq = np.sum(mapq*(sequence==1),axis=0)
+    C_mq = np.sum(mapq*(sequence==2),axis=0)
+    G_mq = np.sum(mapq*(sequence==3),axis=0)
+    T_mq = np.sum(mapq*(sequence==4),axis=0)
+    A_mq_mean = np.mean(mapq*(sequence==1),axis=0)
+    C_mq_mean = np.mean(mapq*(sequence==1),axis=0)
+    G_mq_mean = np.mean(mapq*(sequence==1),axis=0)
+    T_mq_mean = np.mean(mapq*(sequence==1),axis=0)
+    return A_mq, C_mq, G_mq, T_mq, A_mq_mean, C_mq_mean, G_mq_mean, T_mq_mean
+
+def get_seq_baseq_mapq_feat(sequence, baseq, mapq):
+    A_freq, C_freq, G_freq, T_freq, D_freq, A_cnt, C_cnt, G_cnt, T_cnt, D_cnt  = get_base_freq(sequence)
+    A_bq, C_bq, G_bq, T_bq, A_bq_mean, C_bq_mean, G_bq_mean, T_bq_mean = get_base_quality(sequence,baseq)
+    A_mq, C_mq, G_mq, T_mq, A_mq_mean, C_mq_mean, G_mq_mean, T_mq_mean = get_mapping_quality(sequence,mapq)
+    return np.array([A_freq, C_freq, G_freq, T_freq, D_freq, A_cnt, C_cnt, G_cnt, T_cnt, D_cnt, A_bq, C_bq, G_bq, T_bq, A_bq_mean, C_bq_mean, G_bq_mean, T_bq_mean, A_mq, C_mq, G_mq, T_mq, A_mq_mean, C_mq_mean, G_mq_mean, T_mq_mean])
+
+
+
+def get_frequency_feature(sequence, baseq, mapq, hap):
+    integrated_feats = get_seq_baseq_mapq_feat(sequence, baseq, mapq)
+    maternal_index = np.any(hap==1,axis=1)
+    paternal_index = np.any(hap==2,axis=1)
+    unphased_index = np.any(hap==3,axis=1)
+    maternal_depth = len(np.where(maternal_index)[0])
+    paternal_depth = len(np.where(paternal_index)[0])
+    unphased_depth = len(np.where(unphased_index)[0])
+    if maternal_depth > 0:
+        maternal_sequence = sequence[maternal_index]
+        maternal_baseq = baseq[maternal_index]
+        maternal_mapq = mapq[maternal_index]
+        maternal_feats = get_seq_baseq_mapq_feat(maternal_sequence, maternal_baseq, maternal_mapq)
+    else:
+        maternal_feats = np.zeros(integrated_feats.shape)
+    
+    if paternal_depth > 0:
+        paternal_sequence = sequence[paternal_index]
+        paternal_baseq = baseq[paternal_index]
+        paternal_mapq = mapq[paternal_index]
+        paternal_feats = get_seq_baseq_mapq_feat(paternal_sequence, paternal_baseq, paternal_mapq)
+    else:
+        paternal_feats = np.zeros(integrated_feats.shape)
+    
+    if unphased_depth > 0:
+        unphased_sequence = sequence[unphased_index]
+        unphased_baseq = baseq[unphased_index]
+        unphased_mapq = mapq[unphased_index]
+        unphased_feats = get_seq_baseq_mapq_feat(unphased_sequence, unphased_baseq, unphased_mapq)
+    else:
+        unphased_feats = np.zeros(integrated_feats.shape)
+    overall_feats = np.concatenate((integrated_feats, maternal_feats, paternal_feats, unphased_feats), axis=0)
+    return overall_feats
+
+
+    
+
 class PileupFeature():
     def __init__(self, table_file, valid_idx = None):
         if valid_idx is not None:
@@ -87,6 +168,11 @@ class TrainingDataset(Dataset):
         training_sample_indexes = []
         i = 0
         block_size = 1000
+        """
+        由于refcall比variant多10倍，chr1为例，refcall=223923，variant=16463
+        将variant上采样，拷贝后放入训练集
+        测试效果：上采样效果更好，下采样效果不好
+        """
         while i<len(ref_calls):
             if i+1000<len(ref_calls):
                 tmp_ref_calls = ref_calls[i:i+block_size]
@@ -102,6 +188,32 @@ class TrainingDataset(Dataset):
                 np.random.shuffle(tmp_merge_calls)
                 training_sample_indexes = np.concatenate((training_sample_indexes, tmp_merge_calls))
                 i += len(tmp_ref_calls)
+        """
+        由于refcall比variant多10倍，chr1为例，refcall=223923，variant=16463
+        将refcall下采样后放入训练集
+        测试效果：上采样效果更好，下采样效果不好
+        """
+        # while i<len(variant_calls):
+        #     if i+1000<len(variant_calls):
+        #         tmp_variant_calls = variant_calls[i:i+block_size]
+        #         if len(ref_calls)>len(variant_calls)*pn_value:
+        #             tmp_ref_calls = np.random.choice(ref_calls, size = int(block_size*pn_value), replace=False)
+        #         else:
+        #             tmp_ref_calls = np.random.choice(ref_calls, size = int(block_size*pn_value), replace=True)
+        #         tmp_merge_calls = np.concatenate((tmp_ref_calls, tmp_variant_calls))
+        #         np.random.shuffle(tmp_merge_calls)
+        #         training_sample_indexes = np.concatenate((training_sample_indexes, tmp_merge_calls))
+        #         i += block_size
+        #     else:
+        #         tmp_variant_calls = variant_calls[i:]
+        #         if len(ref_calls)>len(variant_calls)*pn_value:
+        #             tmp_ref_calls = np.random.choice(ref_calls, size = int(len(tmp_variant_calls)*pn_value), replace=False)
+        #         else:
+        #             tmp_ref_calls = np.random.choice(ref_calls, size = int(len(tmp_variant_calls)*pn_value), replace=True)
+        #         tmp_merge_calls = np.concatenate((tmp_ref_calls, tmp_variant_calls))
+        #         np.random.shuffle(tmp_merge_calls)
+        #         training_sample_indexes = np.concatenate((training_sample_indexes, tmp_merge_calls))
+        #         i += len(tmp_variant_calls)
         self.training_sample_indexes = training_sample_indexes
         print("INFO: creating pileup feature array")
         self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq = pileup_feature.get_all_items()
@@ -117,9 +229,13 @@ class TrainingDataset(Dataset):
     def __getitem__(self, idx):
         i = int(self.training_sample_indexes[idx])
         # return self.pileup_feature_array[i], self.haplotype_feature_array[i], self.gt[i], self.zy[i]
-        pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
-        haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
-        return pileup_feature_array, haplotype_feature_array, self.gt[i], self.zy[i]
+        # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
+        # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
+        gt = self.gt[i]
+        zy = self.zy[i] if self.zy[i]>= 0 else 0
+        return pileup_feature_array, haplotype_feature_array, gt, zy
 
 class EvaluateDataset(Dataset):
     def __init__(self, bin_path):
@@ -146,9 +262,13 @@ class EvaluateDataset(Dataset):
     def __getitem__(self, idx):
         i = int(self.training_sample_indexes[idx])
         # return self.pileup_feature_array[i], self.haplotype_feature_array[i], self.gt[i], self.zy[i]
-        pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
-        haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
-        return pileup_feature_array, haplotype_feature_array, self.gt[i], self.zy[i]
+        # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
+        # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
+        gt = self.gt[i]
+        zy = self.zy[i] if self.zy[i]>= 0 else 0
+        return pileup_feature_array, haplotype_feature_array, gt, zy
 
 class TestDataset(Dataset):
     def __init__(self, bin_path):
@@ -163,6 +283,8 @@ class TestDataset(Dataset):
         return self.pileup_sequence.shape[0]
     def __getitem__(self, idx):
         i = idx
-        pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
-        haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
+        # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
+        # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
         return pileup_feature_array, haplotype_feature_array
