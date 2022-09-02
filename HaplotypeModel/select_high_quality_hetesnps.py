@@ -58,7 +58,7 @@ def select_high_quality_hetesnps(vcf_file, out_dir, support_quality=15):
 def main():
     parse = argparse.ArgumentParser()
     parse.add_argument('--pileup_vcf', help='Input pileup vcf file', required=True)
-    parse.add_argument('--support_quality', help='Min quality of hetezygous SNP used for phasing. (default: %(default)f)', default=14, type=float)
+    parse.add_argument('--support_quality', help='Min quality of hetezygous SNP used for phasing. (default: %(default)f)', default=16, type=float)
     parse.add_argument('--output_dir',required=True)
     args = parse.parse_args()
     if not os.path.exists(args.output_dir):
