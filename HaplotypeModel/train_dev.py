@@ -16,12 +16,13 @@ from utils import AttrDict, init_logger, count_parameters, save_model
 from tensorboardX import SummaryWriter
 import torchnet.meter as meter
 from datetime import datetime
+from get_truth import load_reference_file
 
 
 # from options import gt_decoded_labels, zy_decoded_labels, indel1_decoded_labels, indel2_decoded_labels
 
 
-def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size, optimizer, logger, visualizer=None):
+def train(epoch, config, model, training_data, references, num_batches_per_epoch, batch_size, optimizer, logger, visualizer=None):
     model.train()
     start_epoch = time.process_time()
     start = time.process_time()
@@ -31,7 +32,9 @@ def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size
     batch_steps = num_batches_per_epoch
 
     for bin_file in os.listdir(training_data):
-        train_dataset = TrainingDataset(bin_path = training_data+'/'+bin_file, pn_value=1.0)
+        train_dataset = TrainingDataset(bin_path = training_data+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length, pn_value=1.0)
+        if train_dataset.__len__()==0:
+            continue
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=config.training.num_gpu * 3)
 
         for step, (pileup_feat, haplotype_feat, gt, zy) in enumerate(train_loader):
@@ -66,7 +69,7 @@ def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size
                 visualizer.add_scalar(
                     'learn_rate', optimizer.lr, optimizer.global_step)
         end = time.process_time()
-        process = step / batch_steps * 100
+        process = (optimizer.global_step % batch_steps) / batch_steps * 100
         logger.info('-Training-Epoch:%d(%.5f%%), Global Step:%d, Learning Rate:%.6f, Grad Norm:%.5f, Loss:%.5f, '
                 'AverageLoss: %.5f, Run Time:%.3f' % (epoch, process, optimizer.global_step, optimizer.lr,
                                                     grad_norm, loss.item(), avg_loss, end - start))
@@ -77,7 +80,7 @@ def train(epoch, config, model, training_data, num_batches_per_epoch, batch_size
     logger.info('-Training-Epoch:%d, Average Loss: %.5f, Epoch Time: %.3f' % (epoch, total_loss / (step + 1), end_epoch - start_epoch))
 
 
-def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=None):
+def eval(epoch, config, model, validating_data, references, batch_size, logger, visualizer=None):
     model.eval()
     total_loss = 0
     total_images = 0
@@ -86,7 +89,9 @@ def eval(epoch, config, model, validating_data, batch_size, logger, visualizer=N
     total_acc = 0
     total_cnt = 0
     for bin_file in os.listdir(validating_data):
-        validate_dataset = EvaluateDataset(bin_path = validating_data+'/'+bin_file)
+        validate_dataset = EvaluateDataset(bin_path = validating_data+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length)
+        if validate_dataset.__len__()==0:
+            continue
         validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size, shuffle=False, num_workers=config.training.num_gpu * 3)
         for step, (pileup_feat, haplotype_feat, gt, zy) in enumerate(validate_loader):
             """
@@ -205,9 +210,11 @@ def main():
         torch.manual_seed(config.training.seed)
     logger.info('Set random seed: %d' % config.training.seed)
 
+    references = load_reference_file(config.data.reference)
+
     num_batches_per_epoch = 0
     for bin_file in os.listdir(config.data.train):
-        train_dataset = TrainingDataset(bin_path = config.data.train+'/'+bin_file,pn_value=1.0)
+        train_dataset = TrainingDataset(bin_path = config.data.train+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length,pn_value=1.0)
         num_batches_per_epoch += math.ceil(train_dataset.__len__()/config.training.batch_size)
     print("batch_size:",config.training.batch_size)
     print("num_batches_per_epoch:",num_batches_per_epoch)
@@ -215,13 +222,13 @@ def main():
 
     if opt.mode == 'retrain':
         #model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
-        model = LSTMNetwork(gt_class=config.model.gt_num_class, zy_class=config.model.zy_num_class).cuda()
+        model = LSTMNetwork(config).cuda()
         model.apply(weights_init)
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch)
         logger.info('Created a %s optimizer.' % config.optim.type)
     elif opt.mode == 'finetune':
         #model = CatModel(pileup_dim=config.model.pileup_dim, haplotype_dim=config.model.haplotype_dim, hidden_size=config.model.hidden_size, nclass=config.model.gt_num_class).cuda()
-        model = LSTMNetwork(gt_class=config.model.gt_num_class, zy_class=config.model.zy_num_class).cuda()
+        model = LSTMNetwork(config).cuda()
         model.load_state_dict(torch.load(opt.model_path))
         optimizer = Optimizer(model.parameters(), config, num_batches_per_epoch, finetune=True)
         logger.info('Created a %s optimizer.' % config.optim.type)
@@ -250,10 +257,10 @@ def main():
 
     for epoch in range(start_epoch, config.training.epochs):
 
-        train(epoch, config, model, config.data.train, num_batches_per_epoch, config.training.batch_size, optimizer, logger, visualizer)
+        train(epoch, config, model, config.data.train, references, num_batches_per_epoch, config.training.batch_size, optimizer, logger, visualizer)
 
         if config.training.eval_or_not:
-            stats_dictioanry = eval(epoch, config, model, config.data.eval, config.training.batch_size, logger, dev_visualizer)
+            stats_dictioanry = eval(epoch, config, model, config.data.eval, references, config.training.batch_size, logger, dev_visualizer)
 
             stats['loss'] = stats_dictioanry['loss']
             stats['gt_accuracy'] = stats_dictioanry['gt_accuracy']
@@ -274,13 +281,14 @@ def main():
         # save_model(model, optimizer, config, save_name)
         logger.info('Epoch %d model has been saved.' % epoch)
 
-        # if epoch >= config.optim.begin_to_adjust_lr:
-        #     optimizer.decay_lr()
-        #     # early stop
-        #     # if optimizer.lr < 1e-7:
-        #     #     logger.info('The learning rate is too low to train.')
-        #     #     break
-        #     logger.info('Epoch %d update learning rate: %.6f' % (epoch, optimizer.lr))
+        if config.optim.type!='Ranger':
+            if epoch >= config.optim.begin_to_adjust_lr:
+                optimizer.decay_lr()
+                # early stop
+                if optimizer.lr < 1e-7:
+                    logger.info('The learning rate is too low to train.')
+                    break
+                logger.info('Epoch %d update learning rate: %.6f' % (epoch, optimizer.lr))
 
     logger.info('The training process is OVER!')
 
