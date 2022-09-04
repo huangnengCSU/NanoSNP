@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import time
 
+BASE2INT = {'A':1, 'C':2, 'G':3, 'T':4, 'N':0}
+
 def get_base_freq(sequence):
     A_cnt = np.sum(sequence==1,axis=0)
     C_cnt = np.sum(sequence==2,axis=0)
@@ -88,7 +90,7 @@ def get_frequency_feature(sequence, baseq, mapq, hap):
     
 
 class PileupFeature():
-    def __init__(self, table_file, valid_idx = None):
+    def __init__(self, table_file, references, pileup_length, valid_idx = None):
         if valid_idx is not None:
             self.pileup_sequences = np.array(table_file.root.pileup_sequences)[valid_idx]    # [N, depth, 33]
             self.pileup_hap = np.array(table_file.root.pileup_hap)[valid_idx]
@@ -101,8 +103,24 @@ class PileupFeature():
             self.pileup_baseq = np.array(table_file.root.pileup_baseq)
             self.pileup_mapq = np.array(table_file.root.pileup_mapq)
             self.candidate_positions = np.array(table_file.root.candidate_positions)
+        ## get reference sequence
+        candidate_reference_sequences = []
+        for i in range(len(self.candidate_positions)):
+            ref_seq = []
+            ctg,pos = str(self.candidate_positions[i][0],encoding='utf-8').split(":")
+            pos = int(pos)
+            for j in range(pos-pileup_length//2, pos+pileup_length//2+1):
+                ref_pos = j-1   # ctg pos is 1-based, ref_pos is 0-based
+                try:
+                    ref_base = references[ctg][ref_pos]
+                    ref_seq.append(BASE2INT[ref_base])
+                except:
+                    ref_seq.append(0)   # 0 is for N
+            candidate_reference_sequences.append(ref_seq)
+        self.candidate_reference_sequences = np.array(candidate_reference_sequences)
+
     def get_all_items(self):
-        return self.pileup_sequences, self.pileup_hap, self.pileup_baseq, self.pileup_mapq
+        return self.pileup_sequences, self.pileup_hap, self.pileup_baseq, self.pileup_mapq, self.candidate_reference_sequences
     def get_feature_tensor(self):
         sequences = self.pileup_sequences
         baseq = self.pileup_baseq
@@ -112,7 +130,7 @@ class PileupFeature():
         return array
 
 class HaplotypeFeature():
-    def __init__(self, table_file, valid_idx = None):
+    def __init__(self, table_file, references, haplotype_length, valid_idx = None):
         if valid_idx is not None:
             self.haplotype_sequences = np.array(table_file.root.haplotype_sequences)[valid_idx]
             self.haplotype_hap = np.array(table_file.root.haplotype_hap)[valid_idx]
@@ -127,8 +145,24 @@ class HaplotypeFeature():
             self.haplotype_mapq = np.array(table_file.root.haplotype_mapq)
             self.candidate_positions = np.array(table_file.root.candidate_positions)
             self.haplotype_positions = np.array(table_file.root.haplotype_positions)
+        ## get reference sequence
+        candidate_reference_sequences = []
+        for i in range(len(self.haplotype_positions)):
+            ref_seq = []
+            for j in range(len(self.haplotype_positions[i])):
+                ctg,pos = str(self.haplotype_positions[i][j],encoding='utf-8').split(":")
+                pos = int(pos)
+                ref_pos = pos-1
+                try:
+                    ref_base = references[ctg][ref_pos]
+                    ref_seq.append(BASE2INT[ref_base])
+                except:
+                    ref_seq.append(0)   # 0 is for N
+            candidate_reference_sequences.append(ref_seq)
+        self.candidate_reference_sequences = np.array(candidate_reference_sequences)
+        
     def get_all_items(self):
-        return self.haplotype_sequences, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq
+        return self.haplotype_sequences, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq, self.candidate_reference_sequences
     def get_feature_tensor(self):
         sequences = self.haplotype_sequences
         baseq = self.haplotype_baseq
@@ -154,14 +188,14 @@ class LabelField():
         
 
 class TrainingDataset(Dataset):
-    def __init__(self, bin_path, pn_value=1.0):
+    def __init__(self, bin_path, references, pileup_length=33, haplotype_length=11, pn_value=1.0):
         ### pn_vlaue:  the number of variant sites (P) deivided by the number of refcall sites (N)
         bin_file = tables.open_file(bin_path, mode='r')
         label_field = LabelField(bin_file)
         ref_calls = label_field.get_refcall_idx()
         variant_calls = label_field.get_variant_idx()
-        pileup_feature = PileupFeature(bin_file, label_field.valid_idx)
-        haplotype_feature = HaplotypeFeature(bin_file, label_field.valid_idx)
+        pileup_feature = PileupFeature(bin_file, references, pileup_length, label_field.valid_idx)
+        haplotype_feature = HaplotypeFeature(bin_file, references, haplotype_length, label_field.valid_idx)
         
         ### refcall和variant按照pn_value的比例进行混合，pn_value越大，则variant越多
         ### 以refcall为遍历的基础，每次从variant中随机采样pn_value*len(refcall)个variant进行混合
@@ -222,11 +256,11 @@ class TrainingDataset(Dataset):
         #         i += len(tmp_variant_calls)
         self.training_sample_indexes = training_sample_indexes
         print("INFO: creating pileup feature array")
-        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq = pileup_feature.get_all_items()
+        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq, self.pileup_reference_sequence = pileup_feature.get_all_items()
         # self.pileup_feature_array = pileup_feature.get_feature_tensor()
         print("INFO: creating haplotype feature array")
         # self.haplotype_feature_array = haplotype_feature.get_feature_tensor()
-        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq = haplotype_feature.get_all_items()
+        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq, self.haplotype_reference_sequence = haplotype_feature.get_all_items()
         self.gt = label_field.gt
         self.zy = label_field.zy
         bin_file.close()
@@ -237,29 +271,34 @@ class TrainingDataset(Dataset):
         # return self.pileup_feature_array[i], self.haplotype_feature_array[i], self.gt[i], self.zy[i]
         # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
         # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
-        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
-        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [104, pileup_length]
+        pileup_ref_seq = self.pileup_reference_sequence[i].reshape((1,-1))
+        pileup_feature_array = np.concatenate((pileup_feature_array, pileup_ref_seq),axis=0)    #   [105, pileup_length]
+
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [104, haplotype_length]
+        haplotype_ref_seq = self.haplotype_reference_sequence[i].reshape((1,-1))
+        haplotype_feature_array = np.concatenate((haplotype_feature_array, haplotype_ref_seq),axis=0)   #   [105, haplotype_length]
         gt = self.gt[i]
         zy = self.zy[i] if self.zy[i]>= 0 else 0
         return pileup_feature_array, haplotype_feature_array, gt, zy
 
 class EvaluateDataset(Dataset):
-    def __init__(self, bin_path):
+    def __init__(self, bin_path, references, pileup_length=33, haplotype_length=11):
         bin_file = tables.open_file(bin_path, mode='r')
         label_field = LabelField(bin_file)
         ref_calls = label_field.get_refcall_idx()
         variant_calls = label_field.get_variant_idx()
-        pileup_feature = PileupFeature(bin_file, label_field.valid_idx)
-        haplotype_feature = HaplotypeFeature(bin_file, label_field.valid_idx)
+        pileup_feature = PileupFeature(bin_file, references, pileup_length, label_field.valid_idx)
+        haplotype_feature = HaplotypeFeature(bin_file, references, haplotype_length, label_field.valid_idx)
         training_sample_indexes = np.concatenate((ref_calls, variant_calls),axis=0)
         np.random.shuffle(training_sample_indexes)
         self.training_sample_indexes = training_sample_indexes
         print("INFO: creating pileup feature array")
-        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq = pileup_feature.get_all_items()
+        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq, self.pileup_reference_sequence = pileup_feature.get_all_items()
         # self.pileup_feature_array = pileup_feature.get_feature_tensor()
         print("INFO: creating haplotype feature array")
         # self.haplotype_feature_array = haplotype_feature.get_feature_tensor()
-        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq = haplotype_feature.get_all_items()
+        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq, self.haplotype_reference_sequence = haplotype_feature.get_all_items()
         self.gt = label_field.gt
         self.zy = label_field.zy
         bin_file.close()
@@ -270,19 +309,24 @@ class EvaluateDataset(Dataset):
         # return self.pileup_feature_array[i], self.haplotype_feature_array[i], self.gt[i], self.zy[i]
         # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
         # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
-        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
-        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [104, pileup_length]
+        pileup_ref_seq = self.pileup_reference_sequence[i].reshape((1,-1))
+        pileup_feature_array = np.concatenate((pileup_feature_array, pileup_ref_seq),axis=0)    #   [105, pileup_length]
+
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [104, haplotype_length]
+        haplotype_ref_seq = self.haplotype_reference_sequence[i].reshape((1,-1))
+        haplotype_feature_array = np.concatenate((haplotype_feature_array, haplotype_ref_seq),axis=0)   #   [105, haplotype_length]
         gt = self.gt[i]
         zy = self.zy[i] if self.zy[i]>= 0 else 0
         return pileup_feature_array, haplotype_feature_array, gt, zy
 
 class TestDataset(Dataset):
-    def __init__(self, bin_path):
+    def __init__(self, bin_path, references, pileup_length=33, haplotype_length=11):
         bin_file = tables.open_file(bin_path, mode='r')
-        pileup_feature = PileupFeature(bin_file)
-        haplotype_feature = HaplotypeFeature(bin_file)
-        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq = pileup_feature.get_all_items()
-        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq = haplotype_feature.get_all_items()
+        pileup_feature = PileupFeature(bin_file, references, pileup_length)
+        haplotype_feature = HaplotypeFeature(bin_file, references, haplotype_length)
+        self.pileup_sequence, self.pileup_hap, self.pileup_baseq, self.pileup_mapq, self.pileup_reference_sequence = pileup_feature.get_all_items()
+        self.haplotype_sequence, self.haplotype_hap, self.haplotype_baseq, self.haplotype_mapq, self.haplotype_reference_sequence = haplotype_feature.get_all_items()
         positions = np.array(haplotype_feature.candidate_positions)
         positions = [str(v, encoding='utf-8') for v in positions.squeeze(1).tolist()]
         self.positions = positions
@@ -295,6 +339,11 @@ class TestDataset(Dataset):
         # pileup_feature_array = np.array([self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i]])
         # haplotype_feature_array = np.array([self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]])
         pos = self.positions[i]
-        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [52, pileup_length]
-        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [52, haplotype_length]
+        pileup_feature_array = get_frequency_feature(self.pileup_sequence[i], self.pileup_baseq[i], self.pileup_mapq[i], self.pileup_hap[i])    # [104, pileup_length]
+        pileup_ref_seq = self.pileup_reference_sequence[i].reshape((1,-1))
+        pileup_feature_array = np.concatenate((pileup_feature_array, pileup_ref_seq),axis=0)    #   [105, pileup_length]
+
+        haplotype_feature_array = get_frequency_feature(self.haplotype_sequence[i], self.haplotype_baseq[i], self.haplotype_mapq[i], self.haplotype_hap[i]) # [104, haplotype_length]
+        haplotype_ref_seq = self.haplotype_reference_sequence[i].reshape((1,-1))
+        haplotype_feature_array = np.concatenate((haplotype_feature_array, haplotype_ref_seq),axis=0)   #   [105, haplotype_length]
         return pos, pileup_feature_array, haplotype_feature_array
