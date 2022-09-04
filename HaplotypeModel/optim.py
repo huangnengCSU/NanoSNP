@@ -24,7 +24,8 @@ class Optimizer(object):
     def step(self):
         self.global_step += 1
         self.optimizer.step()
-        self.lr = self.optimizer.current_lr
+        if self.config.type=="Ranger":
+            self.lr = self.optimizer.current_lr
 
 
     def epoch(self):
