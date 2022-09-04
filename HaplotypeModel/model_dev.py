@@ -106,16 +106,16 @@ class ForwardLayer(nn.Module):
 
 
 class LSTMNetwork(nn.Module):
-    def __init__(self, gt_class, zy_class):
+    def __init__(self, config):
         super(LSTMNetwork, self).__init__()
         # define encoder
-        self.gt_class = gt_class
-        self.zy_class = zy_class
-        self.pileup_encoder = BaseEncoder(input_size=104,hidden_size=512,output_size=256,n_layers=3,dropout=0.1,bidirectional=True)  # N, 33, 128
-        self.haplotype_encoder = BaseEncoder(input_size=104,hidden_size=512,output_size=256,n_layers=3,dropout=0.1,bidirectional=True)   # N, 11, 128
-        self.forward_layer = ForwardLayer(input_size=256*2,inner_size=256,gt_class=gt_class,zy_class=zy_class,pileup_length=33,haplotype_length=11)
-        self.gt_crit = LabelSmoothingLoss(gt_class, 0.1)
-        self.zy_crit = LabelSmoothingLoss(zy_class, 0.1)
+        self.gt_class = config.model.gt_num_class
+        self.zy_class = config.model.zy_num_class
+        self.pileup_encoder = BaseEncoder(input_size=config.model.pileup_dim,hidden_size=config.model.hidden_size,output_size=config.model.hidden_size,n_layers=config.model.lstm_layers,dropout=config.model.dropout,bidirectional=True)  # N, 33, 128
+        self.haplotype_encoder = BaseEncoder(input_size=config.model.haplotype_dim,hidden_size=config.model.hidden_size,output_size=config.model.hidden_size,n_layers=config.model.lstm_layers,dropout=config.model.dropout,bidirectional=True)   # N, 11, 128
+        self.forward_layer = ForwardLayer(input_size=config.model.hidden_size*2,inner_size=config.model.hidden_size,gt_class=config.model.gt_num_class,zy_class=config.model.zy_num_class,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length)
+        self.gt_crit = LabelSmoothingLoss(config.model.gt_num_class, 0.1)
+        self.zy_crit = LabelSmoothingLoss(config.model.zy_num_class, 0.1)
 
     def forward(self, pileup_x, haplotype_x, gt_target, zy_target):
         # pileup_x: N, 52, 33
@@ -143,10 +143,10 @@ class LSTMNetwork(nn.Module):
         return gt_logits, zy_logits
 
 
-if __name__=="__main__":
-    net = LSTMNetwork(10, 3)
-    print(net)
-    pileup_x = torch.randn(2, 52, 33)
-    haplotype_x = torch.randn(2, 52, 11)
-    a,b = net.predict(pileup_x, haplotype_x)
-    print(a.shape, b.shape)
+# if __name__=="__main__":
+#     net = LSTMNetwork(10, 3)
+#     print(net)
+#     pileup_x = torch.randn(2, 52, 33)
+#     haplotype_x = torch.randn(2, 52, 11)
+#     a,b = net.predict(pileup_x, haplotype_x)
+#     print(a.shape, b.shape)
