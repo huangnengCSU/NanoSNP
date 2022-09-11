@@ -101,7 +101,7 @@ def eval(epoch, config, model, validating_paths, batch_size, logger, visualizer=
     gt_conf_metric = ConfusionMatrix(num_classes=config.model.gt_num_class)
     zy_conf_metric = ConfusionMatrix(num_classes=config.model.zy_num_class)
     for validating_file in validating_paths:
-        dataset = TrainDataset(datapath=validating_file, use_balance=config.training.validate_use_balance)
+        dataset = TrainDataset(datapath=validating_file, use_balance=False)
         dl = DataLoader(dataset, batch_size=batch_size, num_workers=4, shuffle=False)
         for batch in dl:
             feature_tensor, genotype_label, zygosity_label, indel1_label, indel2_label = batch
