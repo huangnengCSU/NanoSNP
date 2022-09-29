@@ -27,10 +27,10 @@ def get_base_quality(sequence,baseq):
     C_bq = np.sum(baseq*(sequence==2),axis=0)
     G_bq = np.sum(baseq*(sequence==3),axis=0)
     T_bq = np.sum(baseq*(sequence==4),axis=0)
-    A_bq_mean = np.mean(baseq*(sequence==1),axis=0)
-    C_bq_mean = np.mean(baseq*(sequence==1),axis=0)
-    G_bq_mean = np.mean(baseq*(sequence==1),axis=0)
-    T_bq_mean = np.mean(baseq*(sequence==1),axis=0)
+    A_bq_mean = np.sum(baseq*(sequence==1),axis=0)/(np.sum(sequence==1,axis=0)+1e-9)
+    C_bq_mean = np.sum(baseq*(sequence==2),axis=0)/(np.sum(sequence==2,axis=0)+1e-9)
+    G_bq_mean = np.sum(baseq*(sequence==3),axis=0)/(np.sum(sequence==3,axis=0)+1e-9)
+    T_bq_mean = np.sum(baseq*(sequence==4),axis=0)/(np.sum(sequence==4,axis=0)+1e-9)
     return A_bq, C_bq, G_bq, T_bq, A_bq_mean, C_bq_mean, G_bq_mean, T_bq_mean
 
 def get_mapping_quality(sequence,mapq):
@@ -38,10 +38,10 @@ def get_mapping_quality(sequence,mapq):
     C_mq = np.sum(mapq*(sequence==2),axis=0)
     G_mq = np.sum(mapq*(sequence==3),axis=0)
     T_mq = np.sum(mapq*(sequence==4),axis=0)
-    A_mq_mean = np.mean(mapq*(sequence==1),axis=0)
-    C_mq_mean = np.mean(mapq*(sequence==1),axis=0)
-    G_mq_mean = np.mean(mapq*(sequence==1),axis=0)
-    T_mq_mean = np.mean(mapq*(sequence==1),axis=0)
+    A_mq_mean = np.sum(mapq*(sequence==1),axis=0)/(np.sum(sequence==1,axis=0)+1e-9)
+    C_mq_mean = np.sum(mapq*(sequence==2),axis=0)/(np.sum(sequence==2,axis=0)+1e-9)
+    G_mq_mean = np.sum(mapq*(sequence==3),axis=0)/(np.sum(sequence==3,axis=0)+1e-9)
+    T_mq_mean = np.sum(mapq*(sequence==4),axis=0)/(np.sum(sequence==4,axis=0)+1e-9)
     return A_mq, C_mq, G_mq, T_mq, A_mq_mean, C_mq_mean, G_mq_mean, T_mq_mean
 
 def get_seq_baseq_mapq_feat(sequence, baseq, mapq):
