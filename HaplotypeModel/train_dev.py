@@ -32,7 +32,7 @@ def train(epoch, config, model, training_data, references, num_batches_per_epoch
     batch_steps = num_batches_per_epoch
 
     for bin_file in os.listdir(training_data):
-        train_dataset = TrainingDataset(bin_path = training_data+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length, pn_value=1.0)
+        train_dataset = TrainingDataset(bin_path = training_data+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length, pn_value=config.data.pn_value)
         if train_dataset.__len__()==0:
             continue
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=config.training.num_gpu * 3)
@@ -214,7 +214,7 @@ def main():
 
     num_batches_per_epoch = 0
     for bin_file in os.listdir(config.data.train):
-        train_dataset = TrainingDataset(bin_path = config.data.train+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length,pn_value=1.0)
+        train_dataset = TrainingDataset(bin_path = config.data.train+'/'+bin_file,references=references,pileup_length=config.model.pileup_length,haplotype_length=config.model.haplotype_length,pn_value=config.data.pn_value)
         num_batches_per_epoch += math.ceil(train_dataset.__len__()/config.training.batch_size)
     print("batch_size:",config.training.batch_size)
     print("num_batches_per_epoch:",num_batches_per_epoch)
