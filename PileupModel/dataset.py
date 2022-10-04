@@ -71,7 +71,7 @@ def filter_sample(position_matrix, gt_label, zy_label):
 
 
 class TrainDataset(Dataset):
-    def __init__(self, datapath, use_balance=False):
+    def __init__(self, datapath, use_balance=False, for_evaluate=False):
         # tables.set_blosc_max_threads(16)
         table_file = tables.open_file(datapath, 'r')
         position_matrix = np.array(table_file.root.position_matrix)  # [N,33,18]
@@ -94,6 +94,14 @@ class TrainDataset(Dataset):
             self.zy_label = zy_label
             self.indel1_label = indel1_label
             self.indel2_label = indel2_label
+        
+        if for_evaluate:
+            variant_idx = np.where(self.zy_label>0)[0]  # zy_decoded_labels = ['0/0', '1/1', '0/1']
+            self.position_matrix = self.position_matrix[variant_idx]
+            self.gt_label = self.gt_label[variant_idx]
+            self.zy_label = self.zy_label[variant_idx]
+            self.indel1_label = self.indel1_label[variant_idx]
+            self.indel2_label = self.indel2_label[variant_idx]
 
     def __getitem__(self, i):
         position_matrix = self.position_matrix[i]
