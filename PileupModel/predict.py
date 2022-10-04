@@ -105,16 +105,49 @@ def predict(model, testing_paths, batch_size, output_file, device):
                     gt_qual = calculate_score(gt_prob[j])
                     zy_qual = calculate_score(zy_prob[j])
                     qual = min(gt_qual, zy_qual)
+                    
+                    ## 为了保证PileupModel尽可能少漏掉SNP位点，如果gt和zy中有一个表明是变异，则以变异的结果为准输出到vcf
 
                     alt = alt.replace(sref, '')
                     if len(alt) == 0:
-                        zy = '0/0'
-                        fwriter.write(
+                        if zy == '0/0':
+                            fwriter.write(
                             "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, sref,
                                                                                       str(qual), \
                                                                                       'RefCall', '.', 'GT:GQ:DP:AF',
                                                                                       zy + ":%s:%d:%f" % (
                                                                                           str(int(qual)), depth, af)))
+                        elif zy=='1/1':
+                            max_ti, max_v = -1,-1
+                            for ti in [0,4,7,9]:
+                                if gt_decoded_labels[ti][0] == sref:    ## AA == A
+                                    continue
+                                if gt_output[ti]>max_v:
+                                    max_v = gt_output[ti]
+                                    max_ti = ti
+                            new_alt = gt_decoded_labels[max_ti][0]
+                            fwriter.write(
+                            "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, new_alt,
+                                                                                      str(zy_qual), \
+                                                                                      'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                      zy + ":%s:%d:%f" % (
+                                                                                          str(int(zy_qual)), depth, af)))
+                        elif zy=='0/1':
+                            max_ti, max_v = -1,-1
+                            for ti in [1,2,3,5,6,8]:
+                                if gt_output[ti]>max_v:
+                                    max_v = gt_output[ti]
+                                    max_ti = ti
+                            if gt_decoded_labels[max_ti][0]==sref:
+                                new_alt = gt_decoded_labels[max_ti][1]
+                            else:
+                                new_alt = gt_decoded_labels[max_ti][0]
+                            fwriter.write(
+                            "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, new_alt,
+                                                                                      str(zy_qual), \
+                                                                                      'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                      zy + ":%s:%d:%f" % (
+                                                                                          str(int(zy_qual)), depth, af)))
                         continue
                     elif len(alt) == 1:
                         alt = alt
@@ -126,18 +159,49 @@ def predict(model, testing_paths, batch_size, output_file, device):
                     if len(alt) >= 3 and zy_output[j] != 2:
                         zy = '1/2'
 
-                    """
                     if alt == sref and zy_output[j] != 0:
                         # 预测结果是纯合参考，丢弃
-                        zy = '0/0'
+                        if zy=='1/1':
+                            max_ti, max_v = -1,-1
+                            for ti in [0,4,7,9]:
+                                if gt_decoded_labels[ti][0] == sref:    ## AA == A
+                                    continue
+                                if gt_output[ti]>max_v:
+                                    max_v = gt_output[ti]
+                                    max_ti = ti
+                            new_alt = gt_decoded_labels[max_ti][0]
+                            fwriter.write(
+                            "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, new_alt,
+                                                                                      str(zy_qual), \
+                                                                                      'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                      zy + ":%s:%d:%f" % (
+                                                                                          str(int(zy_qual)), depth, af)))
+                        elif zy=='0/1':
+                            max_ti, max_v = -1,-1
+                            for ti in [1,2,3,5,6,8]:
+                                if gt_output[ti]>max_v:
+                                    max_v = gt_output[ti]
+                                    max_ti = ti
+                            if gt_decoded_labels[max_ti][0]==sref:
+                                new_alt = gt_decoded_labels[max_ti][1]
+                            else:
+                                new_alt = gt_decoded_labels[max_ti][0]
+                            fwriter.write(
+                            "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, new_alt,
+                                                                                      str(zy_qual), \
+                                                                                      'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                      zy + ":%s:%d:%f" % (
+                                                                                          str(int(zy_qual)), depth, af))) 
                         continue
                     if alt != sref and zy_output[j] == 0:
-                        # 不确定是纯合突变还是杂合突变，丢弃
+                        # 不确定是纯合突变还是杂合突变，则按纯和突变为结果，不影响后面分型
+                        fwriter.write(
+                            "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, alt,
+                                                                                      str(gt_qual), \
+                                                                                      'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                      zy + ":%s:%d:%f" % (
+                                                                                          str(int(gt_qual)), depth, af))) 
                         continue
-                    """
-
-                    if alt != sref and zy_output[j] == 0:
-                        zy = '0/1'
 
                     fwriter.write(
                         "{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(contig_name, spos, sref, alt,
