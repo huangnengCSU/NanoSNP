@@ -35,10 +35,18 @@ def Run(args):
     fout = open(output_path, 'w')
 
     modify_count = 0
+    insert_HP=True
+    pileup_ref_out = open("pileup_refcall.txt",'w')
+    pileup_low_qual_out = open("pileup_lowqual.txt",'w')
+    haplotype_ref_out = open("haplotype_refcall.txt",'w')
     with open(pileup_vcf, 'r') as fin:
         for line in fin:
             if line.startswith('#'):
                 fout.write(line)
+                if insert_HP:
+                    fout.write('##INFO=<ID=P,Number=0,Type=Flag,Description="Result from pileup model">\n')
+                    fout.write('##INFO=<ID=H,Number=0,Type=Flag,Description="Result from haplotype model">\n')
+                    insert_HP = False
                 continue
             fields = line.strip().split('\t')
             ref = fields[3]
@@ -58,12 +66,20 @@ def Run(args):
                     qual = float(qual)
                     if qual < 13:
                         if filt != "RefCall" and quality>=13:
-                            fout.write(line)
+                            fields = line.strip().split('\t')
+                            fields[7] = 'P'
+                            line = '\t'.join(fields)
+                            fout.write(line+'\n')
+                        elif quality>=13 and filt=="RefCall":
+                            pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                        else:
+                            pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
                         continue
                     if ref in gt:
                         # ref: A , alt: AA
                         # ref: A , alt: AC
                         if gt[0] == gt[1]:
+                            haplotype_ref_out.write(ctgname+'\t'+str(chr_offset)+'\n')
                             continue
                         elif gt[0] != gt[1]:
                             new_gt = gt.replace(ref, '')
@@ -94,7 +110,7 @@ def Run(args):
                             new_zy = '0/1'
                     fout.write("{0}\t{1}\t.\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(ctgname, chr_offset, \
                                                                                          ref, new_gt, str(quality),
-                                                                                         'PASS', '.', 'GT:GQ:DP:AF',
+                                                                                         'PASS', 'H', 'GT:GQ:DP:AF',
                                                                                          new_zy + ":%s:%d:%f" % \
                                                                                          (
                                                                                              str(int(quality)), depth,
@@ -102,10 +118,22 @@ def Run(args):
                     modify_count += 1
                 except KeyError:
                     if filt != "RefCall" and quality>=13:
-                        fout.write(line)
+                        fields = line.strip().split('\t')
+                        fields[7] = 'P'
+                        line = '\t'.join(fields)
+                        fout.write(line+'\n')
+                    elif quality>=13 and filt=="RefCall":
+                        pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                    else:
+                        pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
             else:
                 if filt != "RefCall":
-                    fout.write(line)
+                    fields = line.strip().split('\t')
+                    fields[7] = 'P'
+                    line = '\t'.join(fields)
+                    fout.write(line+'\n')
+                else:
+                    pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
     fout.close()
     print('modify count:', modify_count)
 
@@ -116,7 +144,7 @@ def main():
                         help="Input the variants called by pileup model, required.")
     parser.add_argument("--cat_predict", type=str, required=True,
                         help="Input the predict results from CatModel, required.")
-    parser.add_argument("--quality", type=int, default=15,
+    parser.add_argument("--quality", type=float, default=15,
                         help="Input the quality whether the site will be filtered by edge model.")
     parser.add_argument("--output", type=str, required=True,
                         help="Input the output variants file, required.")
