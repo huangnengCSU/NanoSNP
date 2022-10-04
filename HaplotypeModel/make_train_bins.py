@@ -226,6 +226,13 @@ def Run(args):
         table_file = tables.open_file(output, mode='w')
         int_atom = tables.Atom.from_dtype(np.dtype('int32'))
         string_atom = tables.StringAtom(itemsize=30 * (2 * adjacent_size))
+        
+        if args.max_pileup_depth is not None and args.max_pileup_depth < max_pileup_depth:
+            max_pileup_depth = args.max_pileup_depth
+        
+        if args.max_haplotype_depth is not None and args.max_haplotype_depth < max_haplotype_depth:
+            max_haplotype_depth = args.max_haplotype_depth
+
         table_file.create_earray(where='/', name='haplotype_sequences', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
         table_file.create_earray(where='/', name='haplotype_hap', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
         table_file.create_earray(where='/', name='haplotype_baseq', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
@@ -239,14 +246,14 @@ def Run(args):
         table_file.create_earray(where='/', name='candidate_labels', atom=int_atom, shape=[0, 3])
 
 
-        table_file.root.haplotype_sequences.append(out_haplotype_sequences)
-        table_file.root.haplotype_hap.append(out_haplotype_hap)
-        table_file.root.haplotype_baseq.append(out_haplotype_baseq)
-        table_file.root.haplotype_mapq.append(out_haplotype_mapq)
-        table_file.root.pileup_sequences.append(out_pileup_sequences)
-        table_file.root.pileup_hap.append(out_pileup_hap)
-        table_file.root.pileup_baseq.append(out_pileup_baseq)
-        table_file.root.pileup_mapq.append(out_pileup_mapq)
+        table_file.root.haplotype_sequences.append(out_haplotype_sequences[:, :max_haplotype_depth, :])
+        table_file.root.haplotype_hap.append(out_haplotype_hap[:, :max_haplotype_depth, :])
+        table_file.root.haplotype_baseq.append(out_haplotype_baseq[:, :max_haplotype_depth, :])
+        table_file.root.haplotype_mapq.append(out_haplotype_mapq[:, :max_haplotype_depth, :])
+        table_file.root.pileup_sequences.append(out_pileup_sequences[:, :max_pileup_depth, :])
+        table_file.root.pileup_hap.append(out_pileup_hap[:, :max_pileup_depth, :])
+        table_file.root.pileup_baseq.append(out_pileup_baseq[:, :max_pileup_depth, :])
+        table_file.root.pileup_mapq.append(out_pileup_mapq[:, :max_pileup_depth, :])
         table_file.root.candidate_positions.append(np.array(out_candidate_positions).reshape(-1, 1))
         table_file.root.candidate_labels.append(np.array(out_candidate_labels).reshape(-1, 3))
         table_file.root.haplotype_positions.append(np.array(out_haplotype_positions).reshape(-1, adjacent_size * 2 + 1))
@@ -278,6 +285,8 @@ def main():
                         help='Min quality of hetezygous SNP used for making up of group. (default: %(default)f)')
     parser.add_argument("--max_coverage", type=int, default=150,
                         help="The maximum coverage of each position, default: %(default)d")
+    parser.add_argument("--max_pileup_depth", type=int, default=None,help="The maximum depth of pileup feature, default: %(default)d")
+    parser.add_argument("--max_haplotype_depth", type=int, default=None,help="The maximum depth of haplotype feature, default: %(default)d")
     parser.add_argument("--threads", '-t', type=int, default=1,
                         help="The number of threads used for computing: %(default)d")
     args = parser.parse_args()
