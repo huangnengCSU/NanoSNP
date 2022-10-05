@@ -82,26 +82,28 @@ threads=${THREADS}
 
 mkdir -p ${output}
 
+script_dir=$(cd $(dirname $0);pwd)
+
 if $USE_CONTIG
 then
-      s1_pileup_model_feature_generation_with_contig.sh \
+      bash ${script_dir}/scripts/s1_pileup_model_feature_generation_with_contig.sh \
       ${bam} \
       ${ref} \
       ${output} \
       ${threads} > ${output}/s1.log 2>&1
 else
-      s1_pileup_model_feature_generation.sh \
+      bash ${script_dir}/scripts/s1_pileup_model_feature_generation.sh \
       ${bam} \
       ${ref} \
       ${output} \
       ${threads} > ${output}/s1.log 2>&1
 fi
 
-s2_pileup_model_predict.sh \
+bash ${script_dir}/scripts/s2_pileup_model_predict.sh \
 ${output}/bin_predict_data \
 ${output}/pileup.vcf > ${output}/s2.log 2>&1
 
-s3_phasing_long_reads.sh \
+bash ${script_dir}/scripts/s3_phasing_long_reads.sh \
 ${output}/pileup.vcf \
 ${ref} \
 ${bam} \
@@ -112,19 +114,19 @@ ${output}/splited_vcfs \
 ${output}/haplotag_out \
 ${output} > ${output}/s3.log 2>&1
 
-s4_haplotype_model_feature_generation.sh \
+bash ${script_dir}/scripts/s4_haplotype_model_feature_generation.sh \
 ${output}/pileup.vcf \
 ${output}/haplotag_out \
 ${threads} \
 ${output}/haplotype_bins > ${output}/s4.log 2>&1
 
 
-s5_haplotype_model_predict.sh \
+bash ${script_dir}/scripts/s5_haplotype_model_predict.sh \
 ${output}/haplotype_bins \
 ${ref} \
 ${output}/haplotype.csv > ${output}/s5.log 2>&1
 
-s6_merge_pileup_haplotype_calls.sh \
+bash ${script_dir}/scripts/s6_merge_pileup_haplotype_calls.sh \
 ${output}/pileup.vcf \
 ${output}/haplotype.csv \
 ${output}/merge.vcf > ${output}/s6.log 2>&1
