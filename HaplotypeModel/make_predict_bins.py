@@ -249,8 +249,8 @@ def main():
                         help="Input the variants called by pileup model, required.")
     parser.add_argument("--bams", type=str, required=True,
                         help="Directory to phased bams, required.")
-    parser.add_argument("--reference", type=str, required=True,
-                        help="Input the reference file, required.")
+    # parser.add_argument("--reference", type=str, required=True,
+    #                     help="Input the reference file, required.")
     parser.add_argument("--output", type=str, required=True,
                         help="Input the output directory, required.")
     parser.add_argument("--pileup_flanking_size", type=int, default=5,

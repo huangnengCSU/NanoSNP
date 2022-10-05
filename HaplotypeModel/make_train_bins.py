@@ -271,8 +271,8 @@ def main():
                         help="Input the truth variants with vcf format, required.")
     parser.add_argument("--confident_bed", type=str, required=True,
                         help="Input the confident bed file, required.")
-    parser.add_argument("--reference", type=str, required=True,
-                        help="Input the reference file, required.")
+    # parser.add_argument("--reference", type=str, required=True,
+    #                     help="Input the reference file, required.")
     parser.add_argument("--output", type=str, required=True,
                         help="Input the output directory, required.")
     parser.add_argument("--pileup_flanking_size", type=int, default=5,
