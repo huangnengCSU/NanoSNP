@@ -8,7 +8,7 @@ command_path=$(cd ${script_dir}/../PileupModel/;pwd)
 echo "[-- step 2 --] Pileup model prediction:"${command_path}"/predict.py"
 
 python ${command_path}/predict.py \
--config ${command_path}/config/hg001_mix_without_balance.yaml \
--model ${command_path}/models/hg001_mix_without_balance.epoch13.chkpt \
+-config ${command_path}/config/ont_pileup.yaml \
+-model ${command_path}/models/ont_pileup.chkpt \
 -data ${data_dir} \
 -output ${output_vcf}

@@ -37,8 +37,9 @@ samtools index $SPLITED_BAMS/splited_{1}.bam" ::: ${CHR[@]}
 
 ## split vcf file by chromosomes.
 bgzip -c $INPUT_VCF > $INPUT_VCF.gz && tabix -p vcf $INPUT_VCF.gz
-time parallel --joblog ${OUTPUT_DIR}/splited_vcf.log -j$THREADS \
-"bcftools view -r {1} $INPUT_VCF.gz > $SPLITED_VCFS/{1}.splited.vcf" ::: ${CHR[@]}
+# time parallel --joblog ${OUTPUT_DIR}/splited_vcf.log -j$THREADS \
+# "bcftools view -r {1} $INPUT_VCF.gz > $SPLITED_VCFS/{1}.splited.vcf" ::: ${CHR[@]}
+python select_high_quality_hetesnps.py --pileup_vcf $INPUT_VCF --support_quality 16 --output_dir $SPLITED_VCFS
 
 
 ## whatshap phase

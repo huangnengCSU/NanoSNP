@@ -116,15 +116,12 @@ s4_haplotype_model_feature_generation.sh \
 ${output}/pileup.vcf \
 ${output}/haplotag_out \
 ${threads} \
-${output}/haplotag_split_out \
-${output}/edge_bins1 \
-${output}/edge_bins2 \
-${output} > ${output}/s4.log 2>&1
+${output}/haplotype_bins > ${output}/s4.log 2>&1
 
 
 s5_haplotype_model_predict.sh \
-${output}/edge_bins1 \
-${output}/edge_bins2 \
+${output}/haplotype_bins \
+${ref} \
 ${output}/haplotype.csv > ${output}/s5.log 2>&1
 
 s6_merge_pileup_haplotype_calls.sh \
