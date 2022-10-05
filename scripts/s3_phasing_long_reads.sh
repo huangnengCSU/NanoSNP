@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ulimit -n 20000
+ulimit -n 10000
 
 # INPUT_VCF="/public/home/hpc164611151/projects/PileupModel/PileupModel/outputs/hg003_100G_hg001_mix_with_refcall.vcf"
 # REF="/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/GRCh38/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
@@ -21,6 +21,8 @@ SPLITED_VCFS=$7
 HAPLOTAG_DIR=$8
 OUTPUT_DIR=$9
 
+script_dir=$(cd $(dirname $0);pwd)
+
 
 PHASED_PREFIX=$PHASED_DIR/`basename $PHASED_DIR`
 
@@ -39,7 +41,7 @@ samtools index $SPLITED_BAMS/splited_{1}.bam" ::: ${CHR[@]}
 bgzip -c $INPUT_VCF > $INPUT_VCF.gz && tabix -p vcf $INPUT_VCF.gz
 # time parallel --joblog ${OUTPUT_DIR}/splited_vcf.log -j$THREADS \
 # "bcftools view -r {1} $INPUT_VCF.gz > $SPLITED_VCFS/{1}.splited.vcf" ::: ${CHR[@]}
-python select_high_quality_hetesnps.py --pileup_vcf $INPUT_VCF --support_quality 16 --output_dir $SPLITED_VCFS
+python ${script_dir}/select_high_quality_hetesnps.py --pileup_vcf $INPUT_VCF --support_quality 16 --output_dir $SPLITED_VCFS
 
 
 ## whatshap phase

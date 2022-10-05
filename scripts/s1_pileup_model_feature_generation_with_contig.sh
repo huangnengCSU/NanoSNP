@@ -11,5 +11,5 @@ command_path=$(cd ${script_dir}/../dna_sv_tensor/src/scripts/;pwd)
 echo "[-- step 1 --] Pileup feature generation:"${command_path}"/make_predict_data.sh"
 
 # bash ${command_path}/make_predict_data.sh -b ${bam} -f ${ref} -t ${threads} -o ${outdir}
-make_predict_data.sh -b ${bam} -f ${ref} -t ${threads} -o ${outdir} --usecontig
+bash ${command_path}/make_predict_data.sh -b ${bam} -f ${ref} -t ${threads} -o ${outdir} --usecontig
 # rm ${outdir}/bin_predict_data/job_make_bin_predict_data.done
