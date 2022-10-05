@@ -1,0 +1,41 @@
+configname: ont_pileup
+data:
+  train: "/public/home/hpc164611151/projects/PileupModel/hg001_latest_dna_sv_tensor_RU/mix"
+  dev: "None"
+  test: "None"
+model:
+  enc:
+    type: lstm
+    hidden_size: 64
+    output_size: 128
+    n_layers: 2
+    bidirectional: True
+  joint:
+    inner_size: 256
+  feature_dim: 18
+  gt_num_class: 21
+  zy_num_class: 3
+  indel1_num_class: 33
+  indel2_num_class: 33
+  dropout: 0.3
+training:
+  batch_size: 2000
+  use_balance: False
+  validate_use_balance: False
+  load_model: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2022
+  num_gpu: 1
+  epochs: 200
+  max_grad_norm: 20
+  visualization: True
+  save_model: ont_pileup
+optim:
+  type: LookaheadAdam
+  lr: 0.0001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0
+  begin_to_adjust_lr: 10

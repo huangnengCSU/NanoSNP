@@ -1,0 +1,38 @@
+configname: ont_haplotype
+data:
+  train: "/public/home/hpc164611151/projects/Bioinformatics_NanoSNP_review/Haplotype_training_dataset/300/test_new_make_bins/nanosnp_bins2/train"
+  eval: "/public/home/hpc164611151/projects/Bioinformatics_NanoSNP_review/Haplotype_training_dataset/300/test_new_make_bins/nanosnp_bins2/eval"
+  reference: "/public/data/biodata/compu_bio/member/huangneng/SNP_human_datasets/human_samples/GRCh38/GCA_000001405.15_GRCh38_no_alt_plus_hs38d1_analysis_set.fna"
+  pn_value: 0.7
+model:
+  pileup_dim: 105
+  haplotype_dim: 105
+  pileup_length: 33
+  haplotype_length: 11
+  hidden_size: 256
+  lstm_layers: 3
+  gt_num_class: 10
+  zy_num_class: 3
+  dropout: 0.1
+training:
+  batch_size: 512
+  load_model: False
+  load_encoder: False
+  load_forward_layer: False
+  first_stage: -1
+  eval_or_not: True
+  seed: 2021
+  num_gpu: 1
+  epochs: 30
+  max_grad_norm: 2
+  visualization: True
+  show_interval: 100
+  save_model: ont_haplotype
+optim:
+  type: LookaheadAdam
+  lr: 0.00001
+  momentum: 0.9
+  nesterov: True
+  decay_ratio: 0.98
+  weight_decay: 0.0001
+  begin_to_adjust_lr: 3
