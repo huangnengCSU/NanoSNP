@@ -36,9 +36,10 @@ def Run(args):
 
     modify_count = 0
     insert_HP=True
-    pileup_ref_out = open("pileup_refcall.txt",'w')
-    pileup_low_qual_out = open("pileup_lowqual.txt",'w')
-    haplotype_ref_out = open("haplotype_refcall.txt",'w')
+    out_dir = os.path.dirname(output_path)
+    pileup_ref_out = open(out_dir+os.sep+"pileup_refcall.txt",'w')
+    pileup_low_qual_out = open(out_dir+os.sep+"pileup_lowqual.txt",'w')
+    haplotype_ref_out = open(out_dir+os.sep+"haplotype_refcall.txt",'w')
     with open(pileup_vcf, 'r') as fin:
         for line in fin:
             if line.startswith('#'):
