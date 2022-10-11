@@ -26,7 +26,7 @@ Stage: build
     conda install cudatoolkit=10.2
     conda install pytorch-gpu
     # conda install pytorch-cpu
-    conda install whatshap
+    conda install whatshap=1.0
     pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
     python -m pip install git+https://github.com/lessw2020/Ranger21.git
     cd /tools/

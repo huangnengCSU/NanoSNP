@@ -22,7 +22,7 @@ RUN conda config --add channels conda-forge
 RUN conda install cudatoolkit=10.2
 RUN conda install pytorch-gpu
 # RUN conda install pytorch-cpu
-RUN conda install whatshap
+RUN conda install whatshap=1.0
 RUN pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
 RUN python -m pip install git+https://github.com/lessw2020/Ranger21.git
 RUN git clone https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
