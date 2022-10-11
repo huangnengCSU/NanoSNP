@@ -13,8 +13,9 @@ script_dir=$(cd $(dirname $0);pwd)
 
 INPUT_VCF=$1
 HAPLOTAG_DIR=$2
-THREADS=$3
-OUTPUT_DIR=$4
+COVERAGE=$3
+THREADS=$4
+OUTPUT_DIR=$5
 # HAPLOTAG_SPLIT_BAMS=$4
 # BIN_DIR1=$5
 # BIN_DIR2=$6
@@ -59,4 +60,6 @@ python ${command_path}/make_predict_bins.py \
 --pileup_flanking_size 16 \
 --low_quality_threshold 19 \
 -t ${THREADS} \
---output $OUTPUT_DIR
+--output $OUTPUT_DIR \
+--max_pileup_depth $[$COVERAGE*3] \
+--max_haplotype_depth $[$COVERAGE*3] 
