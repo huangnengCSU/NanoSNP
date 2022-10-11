@@ -12,17 +12,17 @@ RUN tar -jxvf bcftools-1.15.1.tar.bz2 && cd bcftools-1.15.1 && ./configure && ma
 RUN cd /tools/
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh
 RUN bash Miniconda3-py38_4.12.0-Linux-x86_64.sh -b -p /tools/miniconda3/
-RUN rm Miniconda3-latest-Linux-x86_64.sh
+RUN rm Miniconda3-py38_4.12.0-Linux-x86_64.sh
 ENV PATH=/tools/miniconda3/bin:${PATH}
 RUN conda config --add channels bioconda
 RUN conda config --add channels conda-forge
+RUN conda install whatshap=1.0
 # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/main/
 # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/pkgs/free/
 # RUN conda config --add channels https://mirrors.sjtug.sjtu.edu.cn/anaconda/cloud/conda-forge/
 RUN conda install cudatoolkit=10.2
 RUN conda install pytorch-gpu
 # RUN conda install pytorch-cpu
-RUN conda install whatshap=1.0
 RUN pip install torchnet torchmetrics pyyaml pandas tqdm tensorboardx matplotlib tables pysam
 RUN python -m pip install git+https://github.com/lessw2020/Ranger21.git
 RUN git clone https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
