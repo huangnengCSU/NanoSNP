@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ulimit -n 20000
+ulimit -n 10000
 
 script_dir=$(cd $(dirname $0);pwd)
 
