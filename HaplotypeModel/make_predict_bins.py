@@ -142,7 +142,7 @@ def Run(args):
         out_pileup_sequences, out_pileup_baseq, out_pileup_mapq = [], [], []
         max_pileup_depth, max_haplotype_depth = 0, 0
         chromosome_groups = groups_dict[k]
-        total_threads = args.threads
+        total_threads = args.threads-1
         step = math.ceil(len(chromosome_groups) / total_threads)
         divided_groups = [chromosome_groups[dt:dt + step] for dt in range(0, len(chromosome_groups), step)]  # divided for multiple threads
         samfile = args.bams + '/' + k + '.bam'
@@ -173,13 +173,17 @@ def Run(args):
                 else:
                     sys.stderr.write("ERROR: " + str(sig.exception()) + "\n")
                 sig._result = None  # python issue 27144
-
             # 排序
         out_candidate_positions = np.array(out_candidate_positions)
         new_candidate_positions = [int(v.split(':')[1]) for v in out_candidate_positions]
         new_index = np.argsort(new_candidate_positions)
         out_candidate_positions = out_candidate_positions[new_index]
         out_haplotype_positions = np.array(out_haplotype_positions)[new_index]
+        
+        # TODO: fix error "need at least one array to concatenate" temporarily
+        if len(out_haplotype_sequences) == 0:
+            print("need at least one array to concatenate, continue the loop")
+            continue
 
         out_haplotype_sequences = [np.expand_dims(np.pad(a, ((0, max_haplotype_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_haplotype_sequences]
         out_haplotype_sequences = np.concatenate(out_haplotype_sequences)[new_index]
