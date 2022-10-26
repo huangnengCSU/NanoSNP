@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import sys
 import time
@@ -7,6 +8,7 @@ import numpy as np
 import pysam
 import datetime
 import concurrent.futures
+from multiprocessing import Pool
 from tqdm import tqdm
 from argparse import ArgumentParser
 # from extract_adjacent_pileup import extract_pileups, extract_pileups_batch
@@ -142,19 +144,20 @@ def Run(args):
         out_pileup_sequences, out_pileup_baseq, out_pileup_mapq = [], [], []
         max_pileup_depth, max_haplotype_depth = 0, 0
         chromosome_groups = groups_dict[k]
-        total_threads = args.threads-1
+        total_threads = args.threads
         step = math.ceil(len(chromosome_groups) / total_threads)
         divided_groups = [chromosome_groups[dt:dt + step] for dt in range(0, len(chromosome_groups), step)]  # divided for multiple threads
         samfile = args.bams + '/' + k + '.bam'
         assert os.path.exists(samfile)
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=total_threads) as executor:
-            signals = [executor.submit(multigroups_pileup_haplotype_feature, samfile, groups, args.max_coverage, adjacent_size, pileup_flanking_size) for groups in divided_groups]
-            for sig in concurrent.futures.as_completed(signals):
-                if sig.exception() is None:
-                    # get the results
-                    [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth,
-                     pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth] = sig.result()
+        with Pool(processes=total_threads) as pool:
+            signals = [pool.apply_async(multigroups_pileup_haplotype_feature, args=(samfile, groups, args.max_coverage, adjacent_size, pileup_flanking_size)) for groups in divided_groups]
+            if len(signals)==0:
+                print("No signals, continue!")
+                continue
+            if len(signals) > 0:
+                for sig in signals:
+                    [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth] = sig.get()
                     if all( len(rtv)>0 for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap]):
                         out_candidate_positions.extend(candidate_positions)
                         out_haplotype_positions.extend(haplotype_positions)
@@ -170,9 +173,6 @@ def Run(args):
                         max_pileup_depth = pileup_depth if pileup_depth > max_pileup_depth else max_pileup_depth
                     else:
                         print("multicandidates_pileup_haplotype_feature output is empty")
-                else:
-                    sys.stderr.write("ERROR: " + str(sig.exception()) + "\n")
-                sig._result = None  # python issue 27144
             # 排序
         out_candidate_positions = np.array(out_candidate_positions)
         new_candidate_positions = [int(v.split(':')[1]) for v in out_candidate_positions]
