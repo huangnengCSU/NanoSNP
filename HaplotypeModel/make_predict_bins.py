@@ -1,3 +1,4 @@
+from ast import arg
 import multiprocessing
 import os
 import sys
@@ -14,6 +15,7 @@ from argparse import ArgumentParser
 # from extract_adjacent_pileup import extract_pileups, extract_pileups_batch
 from select_hetesnp_homosnp import select_snp, select_snp_multiprocess
 from create_pileup_haplotype import single_group_pileup_haplotype_feature
+from write_to_bins import write_to_bins
 
 
 class SNPItem:
@@ -138,10 +140,10 @@ def Run(args):
     # 把groups先按照染色体进行划分
     for k in groups_dict.keys():
         ## k is contig name
-        out_candidate_positions = []
-        out_haplotype_hap, out_pileup_hap = [], []
-        out_haplotype_positions, out_haplotype_sequences, out_haplotype_baseq, out_haplotype_mapq = [], [], [], []
-        out_pileup_sequences, out_pileup_baseq, out_pileup_mapq = [], [], []
+        # out_candidate_positions = []
+        # out_haplotype_hap, out_pileup_hap = [], []
+        # out_haplotype_positions, out_haplotype_sequences, out_haplotype_baseq, out_haplotype_mapq = [], [], [], []
+        # out_pileup_sequences, out_pileup_baseq, out_pileup_mapq = [], [], []
         max_pileup_depth, max_haplotype_depth = 0, 0
         chromosome_groups = groups_dict[k]
         total_threads = args.threads
@@ -159,91 +161,26 @@ def Run(args):
                 for sig in signals:
                     [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, haplotype_depth, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap, pileup_depth] = sig.get()
                     if all( len(rtv)>0 for rtv in [candidate_positions, haplotype_positions, haplotype_sequences, haplotype_baseq, haplotype_mapq, haplotype_hap, pileup_sequences, pileup_baseq, pileup_mapq, pileup_hap]):
-                        out_candidate_positions.extend(candidate_positions)
-                        out_haplotype_positions.extend(haplotype_positions)
-                        out_haplotype_sequences.extend(haplotype_sequences)
-                        out_haplotype_hap.extend(haplotype_hap)
-                        out_haplotype_baseq.extend(haplotype_baseq)
-                        out_haplotype_mapq.extend(haplotype_mapq)
-                        max_haplotype_depth = haplotype_depth if haplotype_depth > max_haplotype_depth else max_haplotype_depth
-                        out_pileup_sequences.extend(pileup_sequences)
-                        out_pileup_hap.extend(pileup_hap)
-                        out_pileup_baseq.extend(pileup_baseq)
-                        out_pileup_mapq.extend(pileup_mapq)
-                        max_pileup_depth = pileup_depth if pileup_depth > max_pileup_depth else max_pileup_depth
+                        # max_haplotype_depth = haplotype_depth if haplotype_depth > max_haplotype_depth else max_haplotype_depth
+                        # max_pileup_depth = pileup_depth if pileup_depth > max_pileup_depth else max_pileup_depth
+                        write_to_bins(args=args,
+                                      contig_name=k,
+                                      adjacent_size=adjacent_size,
+                                      pileup_flanking_size=pileup_flanking_size,
+                                      out_candidate_positions=candidate_positions,
+                                      out_haplotype_positions=haplotype_positions,
+                                      out_haplotype_sequences=haplotype_sequences,
+                                      out_haplotype_hap=haplotype_hap,
+                                      out_haplotype_baseq=haplotype_baseq,
+                                      out_haplotype_mapq=haplotype_mapq,
+                                      out_pileup_sequences=pileup_sequences,
+                                      out_pileup_hap=pileup_hap,
+                                      out_pileup_baseq=pileup_baseq,
+                                      out_pileup_mapq=pileup_mapq,
+                                      max_haplotype_depth=haplotype_depth,
+                                      max_pileup_depth=pileup_depth)
                     else:
                         print("multicandidates_pileup_haplotype_feature output is empty")
-            # 排序
-        out_candidate_positions = np.array(out_candidate_positions)
-        new_candidate_positions = [int(v.split(':')[1]) for v in out_candidate_positions]
-        new_index = np.argsort(new_candidate_positions)
-        out_candidate_positions = out_candidate_positions[new_index]
-        out_haplotype_positions = np.array(out_haplotype_positions)[new_index]
-        
-        # TODO: fix error "need at least one array to concatenate" temporarily
-        if len(out_haplotype_sequences) == 0:
-            print("need at least one array to concatenate, continue the loop")
-            continue
-
-        out_haplotype_sequences = [np.expand_dims(np.pad(a, ((0, max_haplotype_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_haplotype_sequences]
-        out_haplotype_sequences = np.concatenate(out_haplotype_sequences)[new_index]
-
-        out_haplotype_hap = [np.expand_dims(np.pad(a, ((0, max_haplotype_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_haplotype_hap]
-        out_haplotype_hap = np.concatenate(out_haplotype_hap)[new_index]
-
-        out_haplotype_baseq = [np.expand_dims(np.pad(a, ((0, max_haplotype_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_haplotype_baseq]
-        out_haplotype_baseq = np.concatenate(out_haplotype_baseq)[new_index]
-
-        out_haplotype_mapq = [np.expand_dims(np.pad(a, ((0, max_haplotype_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_haplotype_mapq]
-        out_haplotype_mapq = np.concatenate(out_haplotype_mapq)[new_index]
-
-        out_pileup_sequences = [np.expand_dims(np.pad(a, ((0, max_pileup_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_pileup_sequences]
-        out_pileup_sequences = np.concatenate(out_pileup_sequences)[new_index]
-
-        out_pileup_hap = [np.expand_dims(np.pad(a, ((0, max_pileup_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_pileup_hap]
-        out_pileup_hap = np.concatenate(out_pileup_hap)[new_index]
-
-        out_pileup_baseq = [np.expand_dims(np.pad(a, ((0, max_pileup_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_pileup_baseq]
-        out_pileup_baseq = np.concatenate(out_pileup_baseq)[new_index]
-
-        out_pileup_mapq = [np.expand_dims(np.pad(a, ((0, max_pileup_depth - a.shape[0]), (0, 0)), 'constant', constant_values=-2), 0) for a in out_pileup_mapq]
-        out_pileup_mapq = np.concatenate(out_pileup_mapq)[new_index]
-
-        TABLE_FILTERS = tables.Filters(complib='blosc:lz4hc', complevel=5)
-        output = args.output + '/' + k + '.bin'
-        table_file = tables.open_file(output, mode='w')
-        int_atom = tables.Atom.from_dtype(np.dtype('int32'))
-        string_atom = tables.StringAtom(itemsize=30 * (2 * adjacent_size))
-
-        if args.max_pileup_depth is not None and args.max_pileup_depth < max_pileup_depth:
-            max_pileup_depth = args.max_pileup_depth
-        
-        if args.max_haplotype_depth is not None and args.max_haplotype_depth < max_haplotype_depth:
-            max_haplotype_depth = args.max_haplotype_depth
-
-        table_file.create_earray(where='/', name='haplotype_sequences', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
-        table_file.create_earray(where='/', name='haplotype_hap', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
-        table_file.create_earray(where='/', name='haplotype_baseq', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
-        table_file.create_earray(where='/', name='haplotype_mapq', atom=int_atom, shape=[0, max_haplotype_depth, 2 * adjacent_size + 1])
-        table_file.create_earray(where='/', name='pileup_sequences', atom=int_atom, shape=[0, max_pileup_depth, 2 * pileup_flanking_size + 1])
-        table_file.create_earray(where='/', name='pileup_hap', atom=int_atom, shape=[0, max_pileup_depth, 2 * pileup_flanking_size + 1])
-        table_file.create_earray(where='/', name='pileup_baseq', atom=int_atom, shape=[0, max_pileup_depth, 2 * pileup_flanking_size + 1])
-        table_file.create_earray(where='/', name='pileup_mapq', atom=int_atom, shape=[0, max_pileup_depth, 2 * pileup_flanking_size + 1])
-        table_file.create_earray(where='/', name='candidate_positions', atom=string_atom, shape=(0, 1), filters=TABLE_FILTERS)
-        table_file.create_earray(where='/', name='haplotype_positions', atom=string_atom, shape=(0, adjacent_size * 2 + 1),filters=TABLE_FILTERS)
-
-
-        table_file.root.haplotype_sequences.append(out_haplotype_sequences[:, :max_haplotype_depth, :])
-        table_file.root.haplotype_hap.append(out_haplotype_hap[:, :max_haplotype_depth, :])
-        table_file.root.haplotype_baseq.append(out_haplotype_baseq[:, :max_haplotype_depth, :])
-        table_file.root.haplotype_mapq.append(out_haplotype_mapq[:, :max_haplotype_depth, :])
-        table_file.root.pileup_sequences.append(out_pileup_sequences[:, :max_pileup_depth, :])
-        table_file.root.pileup_hap.append(out_pileup_hap[:, :max_pileup_depth, :])
-        table_file.root.pileup_baseq.append(out_pileup_baseq[:, :max_pileup_depth, :])
-        table_file.root.pileup_mapq.append(out_pileup_mapq[:, :max_pileup_depth, :])
-        table_file.root.candidate_positions.append(np.array(out_candidate_positions).reshape(-1, 1))
-        table_file.root.haplotype_positions.append(np.array(out_haplotype_positions).reshape(-1, adjacent_size * 2 + 1))
-        table_file.close()
     print(time.strftime("[%a %b %d %H:%M:%S %Y] Done.", time.localtime()))
 
 
