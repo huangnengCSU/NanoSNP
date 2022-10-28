@@ -10,6 +10,23 @@ from dataset import PredictDataset
 from utils import AttrDict
 from options import gt_decoded_labels, zy_decoded_labels, base_idx
 
+def write_head(reference_index_file, fwriter):
+    fwriter.write("##fileformat=VCFv4.3"+'\n')
+    fwriter.write("##FILTER=<ID=PASS,Description=\"All filters passed\">"+'\n')
+    fwriter.write("##FILTER=<ID=RefCall,Description=\"Reference call\">"+'\n')
+    with open(reference_index_file) as f:
+        for line in f.readline():
+            contig_name = line.split('\t')[1].split(':')[1]
+            contig_length = line.split('\t')[2].split(':')[1]
+            fwriter.write('##contig=<ID={},length={}>'.format(contig_name, contig_length) + '\n')
+    
+    fwriter.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"+'\n')
+    fwriter.write("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">"+'\n')
+    fwriter.write("##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">"+'\n')
+    fwriter.write("##FORMAT=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency\">"+'\n')
+    fwriter.write("#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample"+'\n')
+
+
 
 def calculate_score(probability):
     p = probability
@@ -17,45 +34,9 @@ def calculate_score(probability):
     return float(round(tmp, 2))
 
 
-def predict(model, testing_paths, batch_size, output_file, device):
+def predict(model, testing_paths, reference_index_file, batch_size, output_file, device):
     fwriter = open(output_file, 'w')
-    # TODO: header需要根据不同的参考序列修改，读取.fai文件可以得到每个contig的长度
-    fwriter.write("""\
-##fileformat=VCFv4.3
-##FILTER=<ID=PASS,Description="All filters passed">
-##FILTER=<ID=LowQual,Description="Low quality variant">
-##FILTER=<ID=RefCall,Description="Reference call">
-##contig=<ID=chr1,length=248956422>
-##contig=<ID=chr2,length=242193529>
-##contig=<ID=chr3,length=198295559>
-##contig=<ID=chr4,length=190214555>
-##contig=<ID=chr5,length=181538259>
-##contig=<ID=chr6,length=170805979>
-##contig=<ID=chr7,length=159345973>
-##contig=<ID=chr8,length=145138636>
-##contig=<ID=chr9,length=138394717>
-##contig=<ID=chr10,length=133797422>
-##contig=<ID=chr11,length=135086622>
-##contig=<ID=chr12,length=133275309>
-##contig=<ID=chr13,length=114364328>
-##contig=<ID=chr14,length=107043718>
-##contig=<ID=chr15,length=101991189>
-##contig=<ID=chr16,length=90338345>
-##contig=<ID=chr17,length=83257441>
-##contig=<ID=chr18,length=80373285>
-##contig=<ID=chr19,length=58617616>
-##contig=<ID=chr20,length=64444167>
-##contig=<ID=chr21,length=46709983>
-##contig=<ID=chr22,length=50818468>
-##contig=<ID=chrX,length=156040895>
-##contig=<ID=chrY,length=57227415>
-##contig=<ID=chrM,length=16569>
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
-##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
-##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele Frequency">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG002
-""")
+    write_head(reference_index_file, fwriter)
     model.eval()
     for testing_file in testing_paths:
         dataset = PredictDataset(datapath=testing_file)
@@ -219,6 +200,7 @@ def main():
     parser.add_argument('-model_path', required=True, help='path to trained model')
     parser.add_argument('-data', required=True, help='directory of bin files')
     # parser.add_argument('-contig', required=True, help='contig name of the input bin files')
+    parser.add_argument('-reference', required=True, help='path to reference file')
     parser.add_argument('-output', required=True, help='output vcf file')
     parser.add_argument('-batch_size', type=int, default=1000, help='batch size')
     parser.add_argument('--no_cuda', action="store_true", help='If running on cpu device, set the argument.')
@@ -231,7 +213,9 @@ def main():
     pred_model.encoder.load_state_dict(checkpoint['encoder'])
     pred_model.forward_layer.load_state_dict(checkpoint['forward_layer'])
     testing_paths = [opt.data + '/' + fname for fname in os.listdir(opt.data) if fname.endswith('.bin')]
-    predict(pred_model, testing_paths, opt.batch_size, opt.output, device)
+
+    assert os.path.exists(opt.reference+'.fai'), 'reference index file does not exist.'
+    predict(pred_model, testing_paths, opt.reference+'.fai', opt.batch_size, opt.output, device)
 
 
 if __name__ == '__main__':

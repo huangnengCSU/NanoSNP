@@ -108,6 +108,7 @@ fi
 
 bash ${script_dir}/scripts/s2_pileup_model_predict.sh \
 ${output}/bin_predict_data \
+${ref} \
 ${output}/pileup.vcf > ${output}/s2.log 2>&1
 
 bash ${script_dir}/scripts/s3_phasing_long_reads.sh \
