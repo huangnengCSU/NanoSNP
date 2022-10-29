@@ -15,9 +15,9 @@ def write_head(reference_index_file, fwriter):
     fwriter.write("##FILTER=<ID=PASS,Description=\"All filters passed\">"+'\n')
     fwriter.write("##FILTER=<ID=RefCall,Description=\"Reference call\">"+'\n')
     with open(reference_index_file) as f:
-        for line in f.readline():
+        for line in f:
             contig_name = line.strip().split()[0]
-            contig_length = line.strip().split()[0]
+            contig_length = line.strip().split()[1]
             fwriter.write('##contig=<ID={},length={}>'.format(contig_name, contig_length) + '\n')
     
     fwriter.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"+'\n')
