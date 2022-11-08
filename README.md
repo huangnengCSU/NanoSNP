@@ -29,13 +29,6 @@ THREADS="40"  ## number of threads used for computing.
 COVERAGE="30"  ## coverage of sequencing reads
 
 singularity exec --nv --containall -B "${INPUT_DIR}":"${INPUT_DIR}","${OUTPUT_DIR}":"${OUTPUT_DIR}" \
-nanosnp_v1.1-gpu.sif run_caller.sh \
--b "${INPUT_DIR}/input.bam" \
--f "${INPUT_DIR}/reference.fa" \
--t "${THREADS}" \
--o "${OUTPUT_DIR}"
-
-singularity exec --nv --containall -B "${INPUT_DIR}":"${INPUT_DIR}","${OUTPUT_DIR}":"${OUTPUT_DIR}" \
 nanosnp_v2.1-gpu.sif run_caller.sh \
 -b "${INPUT_DIR}/input.bam" \
 -f "${INPUT_DIR}/reference.fa" \
