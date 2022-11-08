@@ -5,14 +5,10 @@
 NanoSNP can be installed using Docker or Singularity:  
 * docker installation with gpu device:
 ```
-git clone https://github.com/huangnengCSU/NanoSNP.git
-cd NanoSNP/
 docker pull huangnengcsu/nanosnp:v2.1-gpu
 ```
 * singularity installation with gpu devices:
 ```
-git clone https://github.com/huangnengCSU/NanoSNP.git
-cd NanoSNP/
 singularity pull docker://huangnengcsu/nanosnp:v2.1-gpu
 ```
 
