@@ -174,8 +174,9 @@ if [ ! -f ${chr_pileup_data_done} ]; then
         exit 1
     fi
     touch ${chr_pileup_data_done}
-fi    
+fi
 
+ALL_CHR_LIST[${#arr[*]}]=`ls ${CHR_PILEUP_DATA_DIR}/*.mpileup | xargs -I file basename file .mpileup`
 mkdir -p ${CANDIDATE_SNP_TENSOR_DIR}
 make_can_snp_tensor_done=${CANDIDATE_SNP_TENSOR_DIR}/job_make_snp_tensor.done 
 if [ ! -f ${make_can_snp_tensor_done} ]; then
