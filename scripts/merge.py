@@ -37,9 +37,9 @@ def Run(args):
     modify_count = 0
     insert_HP=True
     out_dir = os.path.dirname(output_path)
-    pileup_ref_out = open(out_dir+os.sep+"pileup_refcall.txt",'w')
-    pileup_low_qual_out = open(out_dir+os.sep+"pileup_lowqual.txt",'w')
-    haplotype_ref_out = open(out_dir+os.sep+"haplotype_refcall.txt",'w')
+    #pileup_ref_out = open(out_dir+os.sep+"pileup_refcall.txt",'w')
+    #pileup_low_qual_out = open(out_dir+os.sep+"pileup_lowqual.txt",'w')
+    #haplotype_ref_out = open(out_dir+os.sep+"haplotype_refcall.txt",'w')
     with open(pileup_vcf, 'r') as fin:
         for line in fin:
             if line.startswith('#'):
@@ -72,15 +72,18 @@ def Run(args):
                             line = '\t'.join(fields)
                             fout.write(line+'\n')
                         elif quality>=13 and filt=="RefCall":
-                            pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                            # pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                            pass
                         else:
-                            pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                            # pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                            pass
                         continue
                     if ref in gt:
                         # ref: A , alt: AA
                         # ref: A , alt: AC
                         if gt[0] == gt[1]:
-                            haplotype_ref_out.write(ctgname+'\t'+str(chr_offset)+'\n')
+                            # haplotype_ref_out.write(ctgname+'\t'+str(chr_offset)+'\n')
+                            pass
                             continue
                         elif gt[0] != gt[1]:
                             new_gt = gt.replace(ref, '')
@@ -124,9 +127,11 @@ def Run(args):
                         line = '\t'.join(fields)
                         fout.write(line+'\n')
                     elif quality>=13 and filt=="RefCall":
-                        pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                        # pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                        pass
                     else:
-                        pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                        # pileup_low_qual_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                        pass
             else:
                 if filt != "RefCall":
                     fields = line.strip().split('\t')
@@ -134,9 +139,10 @@ def Run(args):
                     line = '\t'.join(fields)
                     fout.write(line+'\n')
                 else:
-                    pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                    # pileup_ref_out.write(ctgname+'\t'+str(chr_offset)+'\t'+str(quality)+'\n')
+                    pass
     fout.close()
-    print('modify count:', modify_count)
+    # print('modify count:', modify_count)
 
 
 def main():
