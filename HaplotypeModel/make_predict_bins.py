@@ -148,6 +148,8 @@ def Run(args):
         chromosome_groups = groups_dict[k]
         total_threads = args.threads
         step = math.ceil(len(chromosome_groups) / total_threads)
+        if step == 0:
+            continue
         divided_groups = [chromosome_groups[dt:dt + step] for dt in range(0, len(chromosome_groups), step)]  # divided for multiple threads
         samfile = args.bams + '/' + k + '.bam'
         assert os.path.exists(samfile)
